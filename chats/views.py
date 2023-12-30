@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, viewsets
 
 from .models import Chat, Message
-from .serializer import ChatSerializer, MessageSerializer
+from .serializers import ChatSerializer, MessageSerializer
 
 User = get_user_model()
 
