@@ -1,6 +1,6 @@
 import os
 
-from accounts.serializer import UserSerializer
+from accounts.serializers import UserSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
