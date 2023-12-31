@@ -14,6 +14,10 @@ class MessageCreateView(generics.CreateAPIView):
     serializer_class = MessageSerializer
     queryset = Message.objects.all()
 
+class ChatCreateView(generics.CreateAPIView):
+    serializer_class = ChatSerializer
+    queryset = Chat.objects.all()
+
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     queryset = Message.objects.all()

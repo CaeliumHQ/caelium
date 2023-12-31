@@ -12,7 +12,7 @@ class ChatSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Chat
-        fields = ['chat']
+        fields = '__all__'
 
     def get_chat(self, obj):
         requesting_user = self.context['request'].user
@@ -24,8 +24,16 @@ class ChatSerializer(serializers.ModelSerializer):
         return {'id': chat_id, 'avatar': os.environ['absolute_url'] + str(avatar), 'name': name}
 
     def create(self, validated_data):
-        return Message.objects.create(**validated_data)
-
+        request_user = self.context['request'].user
+        participants = validated_data['participants']
+        starred_messages = validated_data['starred_messages']
+        if request_user not in participants:
+            raise serializers.ValidationError("Request user must be in participants")
+        chat = Chat.objects.create()
+        chat.participants.set(participants)
+        chat.starred_messages.set(starred_messages)
+        chat.save()
+        return chat
 
 
 class MessageSerializer(serializers.ModelSerializer):
