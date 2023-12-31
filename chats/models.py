@@ -4,7 +4,6 @@ from django.db import models
 class Chat(models.Model):
     name = models.CharField(max_length=30, null=True, blank=True)
     participants = models.ManyToManyField('accounts.User')
-    starred_messages = models.ManyToManyField('Message', related_name='starred_messages', blank=True)
 
     def __str__(self):
         participant_names = list(self.participants.values_list('username', flat=True))
