@@ -7,17 +7,21 @@ from .serializers import ChatSerializer, MessageSerializer
 
 class ChatViewSet(viewsets.ModelViewSet):
     serializer_class = ChatSerializer
+
     def get_queryset(self):
         user = self.request.user
         return Chat.objects.filter(participants=user)
+
 
 class MessageCreateView(generics.CreateAPIView):
     serializer_class = MessageSerializer
     queryset = Message.objects.all()
 
+
 class ChatCreateView(generics.CreateAPIView):
     serializer_class = ChatSerializer
     queryset = Chat.objects.all()
+
 
 class MessagesView(generics.ListAPIView):
     serializer_class = MessageSerializer
@@ -25,7 +29,6 @@ class MessagesView(generics.ListAPIView):
     def get_queryset(self):
         chat_id = self.kwargs['pk']
         try:
-            # Assuming 'chat_id' is the primary key of the Chat model
             chat_messages = Message.objects.filter(chat=Chat.objects.get(id=chat_id))
             return chat_messages
         except Message.DoesNotExist:
