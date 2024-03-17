@@ -3,8 +3,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.ChatViewSet.as_view({'get': 'list'})),
-    path('messages/<pk>/', views.MessagesView.as_view()),
-    path('create/', views.ChatCreateView.as_view()),
-    path('messages/create/', views.MessageCreateView.as_view()),
+    path('create/', views.CreateChat.as_view(), name='create_chat'),
+    # path('list_chats/', views.list_chats, name='list_chats'),
+    # path('create_message/<int:chat_id>/', views.create_message, name='create_message'),
+    # path('list_messages/<int:chat_id>/', views.list_messages, name='list_messages'),
 ]
