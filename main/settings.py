@@ -24,7 +24,7 @@ ALLOWED_HOSTS = ['api-caelium.jerit.in', '192.168.43.157', '127.0.0.1']
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-CSRF_TRUSTED_ORIGINS = ['https://api-caelium.jerit.in', 'chrome-extension://amknoiejhlmhancpahfcfcfhllgkpbld']
+CSRF_TRUSTED_ORIGINS = ['https://api-caelium.jerit.in', 'https://192.168.43.157:8000']
 
 # Application definition
 

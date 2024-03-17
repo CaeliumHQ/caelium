@@ -1,18 +1,38 @@
-# views.py
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework import generics
 
-from .serializers import ChatSerializer
+from .models import Chat, Message
+from .serializers import (ChatSerializer, CreateChatSerializer,
+                          CreateMessageSerializer, MessageSerializer)
 
 
-class CreateChat(APIView):
-    def post(self, request):
-        requesting_user = request.user
-        chat_data = {'participants': [requesting_user.pk]}
-        serializer = ChatSerializer(data=chat_data)
+class UserChatListView(generics.ListAPIView):
+    serializer_class = ChatSerializer
 
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        user = self.request.user
+        return Chat.objects.filter(participants=user)
+
+class ChatMessageListView(generics.ListAPIView):
+    serializer_class = MessageSerializer
+
+    def get_queryset(self):
+        chat_id = self.kwargs['chat_id']
+        return Message.objects.filter(chat_id=chat_id)
+
+class CreateMessageAPIView(generics.CreateAPIView):
+    serializer_class = CreateMessageSerializer
+
+    def perform_create(self, serializer):
+        sender = self.request.user
+        serializer.save(sender=sender)
+
+class CreateChatAPIView(generics.CreateAPIView):
+    serializer_class = CreateChatSerializer
+
+    def perform_create(self, serializer):
+        participant = self.request.user
+        other_participant_id = self.request.data.get('participant')
+        if other_participant_id:
+            chat = Chat.objects.create()
+            chat.participants.add(participant, other_participant_id)
+            serializer.save(chat=chat)
