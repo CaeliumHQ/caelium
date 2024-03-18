@@ -13,6 +13,7 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ('id', 'sender', 'timestamp', 'content')
+
 class ChatSerializer(serializers.ModelSerializer):
     other_participant = serializers.SerializerMethodField()
     last_message_content = serializers.SerializerMethodField()
