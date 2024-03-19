@@ -22,4 +22,4 @@ class User(AbstractUser):
     birthdate = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return str(self.username)
+        return f'{self.id}. {self.username}'

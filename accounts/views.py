@@ -21,16 +21,6 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return User.objects.all()
 
-# class UserViewSet(viewsets.ModelViewSet):
-#     serializer_class = UserSerializer
-
-#     def get_queryset(self):
-#         queryset = User.objects.all()
-#         # Exclude the current user from the queryset
-#         if self.request.user.is_authenticated:
-#             queryset = queryset.exclude(pk=self.request.user.pk)
-#         return queryset
-
 class UserDetailsView(RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer

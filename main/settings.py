@@ -24,7 +24,7 @@ ALLOWED_HOSTS = ['api-caelium.jerit.in', '192.168.43.157', '127.0.0.1']
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-CSRF_TRUSTED_ORIGINS = ['https://api-caelium.jerit.in', 'https://192.168.43.157:8000']
+CSRF_TRUSTED_ORIGINS = ['https://api-caelium.jerit.in', 'http://192.168.43.157:8000', 'http://192.168.43.157:3000', 'chrome-extension://amknoiejhlmhancpahfcfcfhllgkpbld']
 
 # Application definition
 
@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

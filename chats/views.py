@@ -1,6 +1,7 @@
-from rest_framework import generics
+# views.py
 
-from accounts.serializers import UserSerializer
+from rest_framework import generics, status
+from rest_framework.response import Response
 
 from .models import Chat, Message
 from .serializers import (ChatSerializer, CreateChatSerializer,
@@ -13,21 +14,6 @@ class ChatListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         return Chat.objects.filter(participants=user)
-
-class ChatParticipantAPIView(generics.RetrieveAPIView):
-    serializer_class = UserSerializer
-
-    def get_object(self):
-        chat_id = self.kwargs['chat_id']
-        requested_user = self.request.user
-        try:
-            chat = Chat.objects.get(id=chat_id)
-            if requested_user in chat.participants.all():  # Ensure requested user is a participant
-                other_participant = chat.participants.exclude(id=requested_user.id).first()
-                return other_participant
-            return None  # Return None if the requested user is not a participant
-        except Chat.DoesNotExist:
-            return None
 
 class ChatMessageListView(generics.ListAPIView):
     serializer_class = MessageSerializer
@@ -53,3 +39,4 @@ class CreateChatAPIView(generics.CreateAPIView):
             chat = Chat.objects.create()
             chat.participants.add(participant, other_participant_id)
             serializer.save(chat=chat)
+
