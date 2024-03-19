@@ -1,42 +1,27 @@
-# views.py
-
-from rest_framework import generics, status
+from rest_framework import status, viewsets
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
-from .models import Chat, Message
-from .serializers import (ChatSerializer, CreateChatSerializer,
-                          CreateMessageSerializer, MessageSerializer)
+from .models import Chat
+from .serializers import ChatSerializer
+# from rest_framework.response import Response
 
-
-class ChatListView(generics.ListAPIView):
+class ChatViewSet(viewsets.ModelViewSet):
+    queryset = Chat.objects.all()
     serializer_class = ChatSerializer
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        serializer = ChatSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({"message": "Item deleted successfully"}, status=status.HTTP_200_OK)
 
     def get_queryset(self):
-        user = self.request.user
-        return Chat.objects.filter(participants=user)
-
-class ChatMessageListView(generics.ListAPIView):
-    serializer_class = MessageSerializer
-
-    def get_queryset(self):
-        chat_id = self.kwargs['chat_id']
-        return Message.objects.filter(chat_id=chat_id)
-
-class CreateMessageAPIView(generics.CreateAPIView):
-    serializer_class = CreateMessageSerializer
-
-    def perform_create(self, serializer):
-        sender = self.request.user
-        serializer.save(sender=sender)
-
-class CreateChatAPIView(generics.CreateAPIView):
-    serializer_class = CreateChatSerializer
-
-    def perform_create(self, serializer):
-        participant = self.request.user
-        other_participant_id = self.request.data.get('participant')
-        if other_participant_id:
-            chat = Chat.objects.create()
-            chat.participants.add(participant, other_participant_id)
-            serializer.save(chat=chat)
-
+        return Chat.objects.filter(participants=self.request.user)

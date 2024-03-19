@@ -1,20 +1,10 @@
-# serializers.py
-
 from rest_framework import serializers
-from .models import Chat, Message
+
 from accounts.models import User
+from accounts.serializers import UserSerializer
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'avatar')
+from .models import Chat, Message
 
-class MessageSerializer(serializers.ModelSerializer):
-    sender = UserSerializer()
-
-    class Meta:
-        model = Message
-        fields = ('id', 'sender', 'timestamp', 'content')
 
 class ChatSerializer(serializers.ModelSerializer):
     other_participant = serializers.SerializerMethodField()
@@ -35,7 +25,9 @@ class ChatSerializer(serializers.ModelSerializer):
     def get_last_message_content(self, obj):
         last_message = obj.message_set.last()
         if last_message:
-            return last_message.content
+            if last_message.sender == self.context['request'].user:
+                return f"You: {last_message.content}"
+            return f"{last_message.sender.name}: {last_message.content}"
         return None
 
     def get_last_message_time(self, obj):
@@ -44,12 +36,24 @@ class ChatSerializer(serializers.ModelSerializer):
             return last_message.timestamp
         return None
 
-class CreateMessageSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        current_user = self.context['request'].user
+        participant_id = self.context['request'].data.get('participant')
+        if not participant_id:
+            raise serializers.ValidationError("Participant ID is required")
+        try:
+            participant = User.objects.get(pk=participant_id)
+        except User.DoesNotExist as exc:
+            raise serializers.ValidationError("Participant does not exist") from exc
+        if Chat.objects.filter(participants=current_user).filter(participants=participant_id).exists():
+            raise serializers.ValidationError("Chat already exists with same participants")
+        chat = Chat.objects.create()
+        chat.participants.add(current_user, participant)
+        return chat
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer()
+
     class Meta:
         model = Message
-        fields = ('content',)
-
-class CreateChatSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Chat
-        fields = ('participants',)
+        fields = '__all__'
