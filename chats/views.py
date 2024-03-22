@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Chat, Message
-from .serializers import ChatSerializer, MessageSerializer
+from .serializers import (ChatSerializer, MessageCreateSerializer,
+                          MessageSerializer)
 
 
 class ChatViewSet(viewsets.ModelViewSet):
@@ -31,6 +32,40 @@ class ChatViewSet(viewsets.ModelViewSet):
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
+    queryset = Message.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return MessageCreateSerializer
+        return MessageSerializer
+
+    def create(self, request, *args, **kwargs):
+        chat_id = kwargs.get("chat_id")
+        sender = request.user
+        content = request.data.get("content")
+
+        try:
+            chat = Chat.objects.get(pk=chat_id)
+        except Chat.DoesNotExist:
+            return Response(
+                {"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if sender not in chat.participants.all():
+            return Response(
+                {"error": "User is not a participant of this chat"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        data = {"chat": chat_id, "sender": sender.id, "content": content}
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(chat_id=chat_id)  # Ensure chat_id is set when saving
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     def get_queryset(self):
         chat_id = self.kwargs.get("chat_id")
