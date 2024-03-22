@@ -53,7 +53,7 @@ class ChatSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer()
-
+    chat = ChatSerializer()
     class Meta:
         model = Message
         fields = '__all__'
