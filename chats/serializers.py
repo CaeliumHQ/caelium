@@ -66,12 +66,12 @@ class ChatSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer()
     chat = ChatSerializer()
-    side  = serializers.SerializerMethodField()
+    side = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = "__all__"
-        
+
     def get_side(self, obj):
         current_user = self.context["request"].user
         if obj.sender == current_user:
@@ -82,4 +82,4 @@ class MessageSerializer(serializers.ModelSerializer):
 class MessageCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['chat', 'sender', 'content']
+        fields = ["chat", "sender", "content"]
