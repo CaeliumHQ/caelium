@@ -34,17 +34,17 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
+    "rest_framework",
+    "corsheaders",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",
-    "corsheaders",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
-    "daphne",
     "accounts.apps.AccountsConfig",
     "base.apps.BaseConfig",
     "chats.apps.ChatsConfig",
