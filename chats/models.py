@@ -15,3 +15,6 @@ class Message(models.Model):
     sender = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     content = models.TextField()
+
+    def __str__(self) -> str:
+        return f"{self.sender.username}: {self.content}"
