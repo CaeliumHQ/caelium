@@ -20,7 +20,7 @@ DEBUG = True
 
 AUTH_USER_MODEL = "accounts.User"
 
-ALLOWED_HOSTS = ["api-caelium.jerit.in", "192.168.43.157", "127.0.0.1"]
+ALLOWED_HOSTS = ["api-caelium.jerit.in", "192.168.43.157", "127.0.0.1", "localhost"]
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -29,6 +29,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://192.168.43.157:8000",
     "http://192.168.43.157:3000",
     "chrome-extension://amknoiejhlmhancpahfcfcfhllgkpbld",
+    "http://localhost:3000"
 ]
 
 # Application definition
