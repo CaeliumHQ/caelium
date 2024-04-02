@@ -65,7 +65,7 @@ class ChatConsumer(WebsocketConsumer):
                 "user_id": saved_message.sender.id,
                 "content": saved_message.content,
                 "name": saved_message.sender.name,
-                "timestamp":str(timezone.now()),
+                "timestamp": str(timezone.now()),
                 "avatar": saved_message.sender.avatar.url,
             }
             async_to_sync(self.channel_layer.group_send)(
