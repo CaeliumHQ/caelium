@@ -9,7 +9,6 @@ from .models import Chat, Message
 class ChatSerializer(serializers.ModelSerializer):
     other_participant = serializers.SerializerMethodField()
     last_message_content = serializers.SerializerMethodField()
-    last_message_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
@@ -17,7 +16,7 @@ class ChatSerializer(serializers.ModelSerializer):
             "id",
             "other_participant",
             "last_message_content",
-            "last_message_time",
+            "updated_time",
         )
 
     def get_other_participant(self, obj):
@@ -33,12 +32,6 @@ class ChatSerializer(serializers.ModelSerializer):
             if last_message.sender == self.context["request"].user:
                 return f"You: {last_message.content}"
             return f"{last_message.sender.name}: {last_message.content}"
-        return None
-
-    def get_last_message_time(self, obj):
-        last_message = obj.message_set.last()
-        if last_message:
-            return last_message.timestamp
         return None
 
     def create(self, validated_data):

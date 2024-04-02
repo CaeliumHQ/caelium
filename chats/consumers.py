@@ -4,6 +4,7 @@ import jwt
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.conf import settings
+from django.utils import timezone
 
 from accounts.models import User
 from chats.serializers import MessageCreateSerializer
@@ -55,6 +56,10 @@ class ChatConsumer(WebsocketConsumer):
         create_serializer = MessageCreateSerializer(data=data)
         if create_serializer.is_valid():
             saved_message = create_serializer.save()
+            # Update the updated_time field of the chat instance
+            chat = saved_message.chat
+            chat.updated_time = timezone.now()
+            chat.save()
             message = {
                 "message_id": saved_message.id,
                 "user_id": saved_message.sender.id,
@@ -63,7 +68,6 @@ class ChatConsumer(WebsocketConsumer):
                 "timestamp": saved_message.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
                 "avatar": saved_message.sender.avatar.url,
             }
-            print(message)
             async_to_sync(self.channel_layer.group_send)(
                 self.group_name, {"type": "chat_message", "message": message}
             )

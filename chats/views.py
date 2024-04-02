@@ -1,10 +1,11 @@
+import json
+
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Chat, Message
-from .serializers import (ChatSerializer, MessageCreateSerializer,
-                          MessageSerializer)
+from .serializers import ChatSerializer, MessageCreateSerializer, MessageSerializer
 
 
 class ChatViewSet(viewsets.ModelViewSet):
@@ -17,7 +18,7 @@ class ChatViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUuEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -27,7 +28,9 @@ class ChatViewSet(viewsets.ModelViewSet):
         )
 
     def get_queryset(self):
-        return Chat.objects.filter(participants=self.request.user)
+        return Chat.objects.filter(participants=self.request.user).order_by(
+            "-updated_time"
+        )
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -40,31 +43,9 @@ class MessageViewSet(viewsets.ModelViewSet):
         return MessageSerializer
 
     def create(self, request, *args, **kwargs):
-        chat_id = kwargs.get("chat_id")
-        sender = request.user
-        content = request.data.get("content")
-
-        try:
-            chat = Chat.objects.get(pk=chat_id)
-        except Chat.DoesNotExist:
-            return Response(
-                {"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        if sender not in chat.participants.all():
-            return Response(
-                {"error": "User is not a participant of this chat"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        data = {"chat": chat_id, "sender": sender.id, "content": content}
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(chat_id=chat_id)  # Ensure chat_id is set when saving
-
-        headers = self.get_success_headers(serializer.data)
         return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+            json.dumps({"error": "Messages can only be saved using the chat socket"}),
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
     def get_queryset(self):

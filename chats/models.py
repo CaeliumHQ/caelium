@@ -4,6 +4,7 @@ from django.db import models
 class Chat(models.Model):
     name = models.CharField(max_length=30, null=True, blank=True)
     participants = models.ManyToManyField("accounts.User")
+    updated_time = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         participant_names = list(self.participants.values_list("username", flat=True))
