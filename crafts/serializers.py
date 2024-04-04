@@ -4,10 +4,15 @@ from crafts.models import Craft
 
 
 class CraftSerializer(serializers.ModelSerializer):
+    time = serializers.SerializerMethodField()
+
     class Meta:
         model = Craft
-        exclude = ['owner']
+        exclude = ["owner"]
 
     def create(self, validated_data):
         validated_data["owner"] = self.context["request"].user
         return super().create(validated_data)
+
+    def get_time(self, instance):
+        return f"{round(len(instance.content.split()) / 238, 2)} min"
