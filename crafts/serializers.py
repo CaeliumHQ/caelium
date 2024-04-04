@@ -15,4 +15,4 @@ class CraftSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def get_time(self, instance):
-        return f"{round(len(instance.content.split()) / 238, 2)} min"
+        return f"{round(len(instance.content.split()) / 200, 2)} min"
