@@ -13,7 +13,7 @@ class CraftViewSet(ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        for craft in queryset:
-            craft.content = " ".join(craft.content.split()[:60])
         serializer = self.get_serializer(queryset, many=True)
+        for craft in serializer.data:
+            craft["content"] = " ".join(craft["content"].split()[:60]) + "..."
         return Response(serializer.data)
