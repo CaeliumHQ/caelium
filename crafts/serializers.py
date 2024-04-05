@@ -6,7 +6,7 @@ from crafts.models import Craft
 
 class CraftSerializer(serializers.ModelSerializer):
     time = serializers.SerializerMethodField()
-    owner = UserSerializer()
+    owner = UserSerializer(read_only=True)
 
     class Meta:
         model = Craft
