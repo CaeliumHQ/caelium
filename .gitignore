@@ -10,3 +10,4 @@ media/avatars/uploads
 staticfiles
 test.py
 media/crafts
+.idea
