@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ["secret_key"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(os.environ["env"] == "dev")
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -29,7 +29,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://192.168.43.157:8000",
     "http://192.168.43.157:3000",
     "chrome-extension://amknoiejhlmhancpahfcfcfhllgkpbld",
-    "http://localhost:3000"
+    "http://localhost:3000",
 ]
 
 # Application definition
