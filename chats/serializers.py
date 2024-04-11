@@ -43,14 +43,11 @@ class ChatSerializer(serializers.ModelSerializer):
             participant = User.objects.get(pk=participant_id)
         except User.DoesNotExist as exc:
             raise serializers.ValidationError("Participant does not exist") from exc
-        if (
-            Chat.objects.filter(participants=current_user)
-            .filter(participants=participant_id)
-            .exists()
-        ):
-            raise serializers.ValidationError(
-                "Chat already exists with same participants"
-            )
+        existing_chats = Chat.objects.filter(participants=current_user).filter(
+            participants=participant_id
+        )
+        if existing_chats.exists():
+            return existing_chats.first()
         chat = Chat.objects.create()
         chat.participants.add(current_user, participant)
         return chat
