@@ -28,7 +28,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://api-caelium.jerit.in",
     "http://192.168.43.157:8000",
     "http://192.168.43.157:3000",
-    "chrome-extension://amknoiejhlmhancpahfcfcfhllgkpbld",
     "http://localhost:3000",
 ]
 
