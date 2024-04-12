@@ -9,7 +9,7 @@ from base.models import SPACES
 class Craft(models.Model):
     title = models.CharField(max_length=50)
     tag = models.CharField(max_length=25)
-    banner = models.ImageField(upload_to="media/crafts/banners")
+    banner = models.ImageField(upload_to="crafts/banners")
     content = models.TextField()
     date = models.DateTimeField()
     space = models.CharField(max_length=10, choices=SPACES)
