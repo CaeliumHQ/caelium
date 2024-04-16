@@ -6,8 +6,8 @@ migrations
 db.sqlite3
 .vscode
 todo.txt
-media/avatars/uploads
 staticfiles
 test.py
 media/crafts
+media/avatars/
 .idea
