@@ -23,7 +23,7 @@ class ChatSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         participants = obj.participants.exclude(id=user.id)
         if participants.exists():
-            return UserSerializer(participants.first()).data
+            return UserSerializer(participants.first(), context=self.context).data
         return None
 
     def get_last_message_content(self, obj):
