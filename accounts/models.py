@@ -20,7 +20,7 @@ class User(AbstractUser):
     )
     name = models.CharField(max_length=30)
     avatar = models.ImageField(
-        upload_to="avatars/uploads/",
+        upload_to="avatars/",
         default="defaults/avatar.png",
         null=True,
         blank=True,
