@@ -30,20 +30,16 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ('username', 'name', 'password', 'password2')
+        fields = ('username', 'name', 'password')
 
     def validate(self, attrs):
         if len(attrs['username']) <= 3:
             raise serializers.ValidationError(
               {"username": "username must be at least 3 characters"}
             )
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError(
-                {"password": "Password fields didn't match."})
         return attrs
 
     def create(self, validated_data):
