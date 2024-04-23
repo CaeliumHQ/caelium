@@ -10,4 +10,5 @@ urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),
     path('accounts/', views.UserViewSet.as_view({'get': 'list'}), name='all_users'),
     path('accounts/<int:pk>/', views.UserDetailsView.as_view(), name='user-details'),
+    path('update/<int:pk>/', views.UserUpdateView.as_view(), name='user-update'),
 ]
