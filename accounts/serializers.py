@@ -1,6 +1,7 @@
 import os
 
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
 from dotenv import load_dotenv
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -37,6 +38,27 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "location",
             "gender",
         )
+
+    def validate_username(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                "Username must be at least 3 characters long"
+            )
+        if not value.replace("_", "").isalnum():
+            raise serializers.ValidationError(
+                "Username must contain only alphanumeric characters and underscores"
+            )
+        return value
+
+    def validate_email(self, value):
+        if not "@" in value or not "." in value:
+            raise serializers.ValidationError("Invalid email format")
+        return value
+
+    def validate_birthdate(self, value):
+        if value >= timezone.now().date():
+            raise serializers.ValidationError("Birthdate must be in the past")
+        return value
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

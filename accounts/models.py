@@ -5,9 +5,9 @@ from django.db import models
 
 class User(AbstractUser):
     GENDER_CHOICES = [
-        ("M", "Male"),
-        ("F", "Female"),
-        ("O", "Other"),
+        ("Male", "Male"),
+        ("Female", "Female"),
+        ("Other", "Other"),
     ]
     username = models.CharField(
         max_length=50,
@@ -27,7 +27,7 @@ class User(AbstractUser):
     )
     location = models.CharField(max_length=100, null=True, blank=True)
     gender = models.CharField(
-        max_length=1, choices=GENDER_CHOICES, null=True, blank=True, default="Other"
+        max_length=6, choices=GENDER_CHOICES, null=True, blank=True, default="Other"
     )
     bio = models.TextField(null=True, blank=True)
     birthdate = models.DateField(null=True, blank=True)
