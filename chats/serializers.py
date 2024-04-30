@@ -72,4 +72,18 @@ class MessageSerializer(serializers.ModelSerializer):
 class MessageCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ["chat", "sender", "content"]
+        fields = ["chat", "timestamp", "type", "content", "file", "id"]
+        read_only_fields = ["sender", "chat"]
+
+    def create(self, validated_data):
+        chat_id = self.context["view"].kwargs["chat_id"]
+        validated_data["chat_id"] = chat_id
+        validated_data["sender"] = self.context["request"].user
+        return super().create(validated_data)
+
+    def validate(self, data):
+        if "file" not in data and "content" not in data:
+            raise serializers.ValidationError(
+                "Either 'file' or 'content' must be provided."
+            )
+        return data

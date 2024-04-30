@@ -15,7 +15,18 @@ class Message(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     sender = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
-    content = models.TextField()
+    type = models.CharField(
+        max_length=6,
+        choices={
+            "text": "text",
+            "image": "image",
+            "doc": "doc",
+            "voice": "voice",
+            "video": "video",
+        },
+    )
+    content = models.TextField(null=True, blank=True)
+    file = models.FileField(null=True, blank=True, upload_to='chats')
 
     def __str__(self) -> str:
         return f"{self.sender.username}: {self.content}"

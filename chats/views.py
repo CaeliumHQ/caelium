@@ -1,6 +1,4 @@
-import json
-
-from rest_framework import status, viewsets, filters
+from rest_framework import filters, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -36,12 +34,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return MessageCreateSerializer
         return MessageSerializer
-
-    def create(self, *args, **kwargs):
-        return Response(
-            json.dumps({"error": "Messages can only be saved using the chat socket"}),
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
 
     def get_queryset(self):
         chat_id = self.kwargs.get("chat_id")
