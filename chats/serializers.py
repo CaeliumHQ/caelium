@@ -1,7 +1,7 @@
 import os
 
 from rest_framework import serializers
-
+from django.utils import timezone
 from accounts.models import User
 from accounts.serializers import UserSerializer
 
@@ -104,6 +104,9 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         validated_data["chat_id"] = chat_id
         validated_data["sender"] = self.context["request"].user
         uploaded_file = validated_data.get("file")
+        chat = Chat.objects.get(id=chat_id)
+        chat.save()
+        chat.updated_time = timezone.now()
         if uploaded_file:
             file_extension = os.path.splitext(uploaded_file.name)[-1].lower()
             if file_extension in [".jpg", ".jpeg", ".png", ".gif"]:
