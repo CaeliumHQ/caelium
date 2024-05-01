@@ -28,11 +28,11 @@ class Message(models.Model):
     type = models.CharField(
         max_length=6,
         choices={
-            "text": "text",
-            "image": "image",
+            "txt": "txt",
+            "img": "img",
             "doc": "doc",
-            "voice": "voice",
-            "video": "video",
+            "aud": "aud",
+            "vid": "vid",
         },
     )
     content = models.TextField(null=True, blank=True)
