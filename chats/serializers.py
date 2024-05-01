@@ -1,3 +1,5 @@
+import os
+
 from rest_framework import serializers
 
 from accounts.models import User
@@ -73,12 +75,25 @@ class MessageCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ["chat", "timestamp", "type", "content", "file", "id"]
-        read_only_fields = ["sender", "chat"]
+        read_only_fields = ["sender", "chat", "type"]
 
     def create(self, validated_data):
         chat_id = self.context["view"].kwargs["chat_id"]
         validated_data["chat_id"] = chat_id
         validated_data["sender"] = self.context["request"].user
+        uploaded_file = validated_data.get("file")
+        if uploaded_file:
+            file_extension = os.path.splitext(uploaded_file.name)[-1].lower()
+            if file_extension in [".jpg", ".jpeg", ".png", ".gif"]:
+                validated_data["type"] = "img"
+            elif file_extension in [".mp3", ".wav", ".ogg", ".aac"]:
+                validated_data["type"] = "aud"
+            elif file_extension in [".mp4", ".avi", ".mov"]:
+                validated_data["type"] = "vid"
+            else:
+                validated_data["type"] = "doc"
+        else:
+            validated_data["type"] = "txt"
         return super().create(validated_data)
 
     def validate(self, data):
