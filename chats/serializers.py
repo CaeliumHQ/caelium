@@ -59,6 +59,9 @@ class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer()
     chat = ChatSerializer()
     side = serializers.SerializerMethodField()
+    size = serializers.SerializerMethodField()
+    extension = serializers.SerializerMethodField()
+    file_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
@@ -69,6 +72,25 @@ class MessageSerializer(serializers.ModelSerializer):
         if obj.sender == current_user:
             return "right"
         return "left"
+
+    def get_size(self, obj):
+        if obj.file:
+            size = obj.file.size
+            if size < 1024 * 1024:
+                return f"{size / 1024:.2f} KB"
+            else:
+                return f"{size / (1024 * 1024):.2f} MB"
+        return None
+
+    def get_extension(self, obj):
+        if obj.file:
+            return str(os.path.splitext(obj.file.name)[1]).replace(".", "").upper()
+        return None
+
+    def get_file_name(self, obj):
+        if obj.file:
+            return str(os.path.basename(obj.file.name))
+        return None
 
 
 class MessageCreateSerializer(serializers.ModelSerializer):
