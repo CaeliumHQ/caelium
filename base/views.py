@@ -1,14 +1,14 @@
-# from django.shortcuts import render
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
+
+from base.models import Task
+from base.serializers import TaskSerializer
 
 
-# Create your views here.
-@api_view(['GET'])
-def get_routes(request):
-    routes = [
-        '/api/token/',
-        '/api/register/',
-        '/api/token/refresh/'
-    ]
-    return Response(routes)
+class TaskViewSet(ModelViewSet):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Task.objects.filter(owner=self.request.user)
