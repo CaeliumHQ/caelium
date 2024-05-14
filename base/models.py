@@ -34,6 +34,8 @@ class JoinSpaceRequest(models.Model):
 
 class Task(models.Model):
     name = models.CharField(max_length=255)
+    completed = models.BooleanField(default=False)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
     space = models.CharField(
         max_length=255,
         choices=(
@@ -42,8 +44,24 @@ class Task(models.Model):
             ("family", "Family"),
         ),
     )
-    completed = models.BooleanField(default=False)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE)
-    
+
     def __str__(self):
         return f"{self.owner} - {self.name}"
+
+
+class Event(models.Model):
+    name = models.CharField(max_length=255)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    all_day =  models.BooleanField(default=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    description = models.TextField(blank=True, null=True)
+    space = models.CharField(
+        max_length=255,
+        choices=(
+            ("personal", "Personal"),
+            ("partner", "Partner"),
+            ("family", "Family"),
+        ),
+    )
