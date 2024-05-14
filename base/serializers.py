@@ -1,16 +1,12 @@
 from rest_framework import serializers
 
-from accounts.serializers import UserSerializer
 from base.models import Task
 
 
-
 class TaskSerializer(serializers.ModelSerializer):
-    owner = UserSerializer(read_only=True)
-
     class Meta:
         model = Task
-        fields = "__all__"
+        fields = ["name", "completed", "id"]
 
     def create(self, validated_data):
         validated_data["owner"] = self.context["request"].user

@@ -9,6 +9,6 @@ class TaskViewSet(ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
-        return Task.objects.filter(owner=self.request.user)
+        return Task.objects.filter(owner=self.request.user, completed=False)
