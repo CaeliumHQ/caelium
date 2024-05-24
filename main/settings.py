@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "base.apps.BaseConfig",
     "chats.apps.ChatsConfig",
     "crafts.apps.CraftsConfig",
+    "gallery.apps.GalleryConfig"
 ]
 
 MIDDLEWARE = [
