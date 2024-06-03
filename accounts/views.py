@@ -1,26 +1,61 @@
-from rest_framework import generics, status, viewsets
+import requests
+from django.conf import settings
+from google.auth.transport import requests
+from google.oauth2 import id_token
+from rest_framework import status, viewsets
 from rest_framework.generics import RetrieveAPIView, UpdateAPIView
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User
-from .serializers import (
-    MyTokenObtainPairSerializer,
-    RegisterSerializer,
-    UserSerializer,
-    UserUpdateSerializer
-    )
+from .models import GoogleToken, User
+from .serializers import UserSerializer
 
 
-class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer
+class GoogleLoginView(APIView):
+    def post(self, request):
+        token = request.data.get("token")
+        try:
+            id_info = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                settings.GOOGLE_CLIENT_ID,
+                clock_skew_in_seconds=10,
+            )
+            if "email" not in id_info or "name" not in id_info:
+                return Response(
+                    {"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
+                )
 
+            email = id_info["email"]
+            name = id_info["name"]
+            access_token = request.data["google_access_token"]
+            refresh_token = request.data["google_refresh_token"]
+            user, _ = User.objects.get_or_create(email=email, name=name)
+            google_token, _ = GoogleToken.objects.get_or_create(user=user)
+            google_token.access_token = access_token
+            google_token.refresh_token = refresh_token
+            google_token.save()
 
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    permission_classes = (AllowAny,)
-    serializer_class = RegisterSerializer
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+            print("access === ", access_token, "refresh === ", refresh_token)
+
+            serializer = UserSerializer(user)
+            return Response(
+                {
+                    "user": serializer.data,
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except ValueError:
+            return Response(
+                {"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -37,7 +72,7 @@ class UserDetailsView(RetrieveAPIView):
 
 class UserUpdateView(UpdateAPIView):
     queryset = User.objects.all()
-    serializer_class = UserUpdateSerializer
+    serializer_class = UserSerializer
 
     def perform_update(self, serializer):
         user_instance = serializer.instance
