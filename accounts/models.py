@@ -56,6 +56,7 @@ class User(AbstractUser):
     )
     bio = models.TextField(null=True, blank=True)
     birthdate = models.DateField(null=True, blank=True)
+    password = models.CharField(null=True, blank=True, max_length=255)
     objects = UserManager()
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
