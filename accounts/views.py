@@ -20,7 +20,6 @@ class GoogleLoginView(APIView):
                 token,
                 requests.Request(),
                 settings.GOOGLE_CLIENT_ID,
-                clock_skew_in_seconds=10,
             )
             if "email" not in id_info or "name" not in id_info:
                 return Response(
