@@ -16,7 +16,7 @@ class TaskSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
-        fields = "__all__"
+        exclude = ['owner']
 
     def create(self, validated_data):
         validated_data["owner"] = self.context["request"].user
