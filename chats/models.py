@@ -11,7 +11,7 @@ class Chat(models.Model):
     updated_time = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        participant_names = list(self.participants.values_list("username", flat=True))
+        participant_names = list(self.participants.values_list("name", flat=True))
         return f"{self.pk}: {', '.join(participant_names)}"
 
 
@@ -39,4 +39,4 @@ class Message(models.Model):
     file = models.FileField(null=True, blank=True, upload_to="chats")
 
     def __str__(self) -> str:
-        return f"{self.sender.username}: {self.content}"
+        return f"{self.sender.name}: {self.content}"
