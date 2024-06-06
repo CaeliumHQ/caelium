@@ -1,7 +1,6 @@
 import jwt
 import requests
 from django.conf import settings
-from google.oauth2 import id_token
 from rest_framework import status, viewsets
 from rest_framework.generics import RetrieveAPIView, UpdateAPIView
 from rest_framework.response import Response
@@ -85,3 +84,15 @@ class UserUpdateView(UpdateAPIView):
             {"error": "You are not authorized to update this user's data."},
             status=status.HTTP_403_FORBIDDEN,
         )
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        return User.objects.all()
+
+
+class UserDetailsView(RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
