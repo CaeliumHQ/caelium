@@ -1,3 +1,4 @@
+import jwt
 import requests
 from django.conf import settings
 from google.oauth2 import id_token
@@ -11,59 +12,65 @@ from .models import GoogleToken, User
 from .serializers import UserSerializer
 
 
-class GoogleLoginView(APIView):
+class GoogleLoginUrl(APIView):
+    def get(self, request):
+        request_url = requests.Request(
+            "GET",
+            "https://accounts.google.com/o/oauth2/v2/auth",
+            params={
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "redirect_uri": "http://localhost:3000/api/auth/callback/google",
+                "scope": "https://www.googleapis.com/auth/userinfo.email "
+                "https://www.googleapis.com/auth/userinfo.profile",
+                "access_type": "offline",
+                "response_type": "code",
+                "prompt": "consent",
+            },
+        )
+        url = request_url.prepare().url
+        return Response({"url": url})
+
+
+def get_auth_tokens(code):
+    response = requests.post(
+        "https://oauth2.googleapis.com/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        params={
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": "http://localhost:3000/api/auth/callback/google",
+            "grant_type": "authorization_code",
+        },
+        timeout=10,
+    )
+    return response.json()
+
+
+class GoogleLogin(APIView):
     def post(self, request):
-        token = request.data.get("token")
-        try:
-            id_info = id_token.verify_oauth2_token(
-                token,
-                requests.Request(),
-                settings.GOOGLE_CLIENT_ID,
-            )
-            if "email" not in id_info or "name" not in id_info:
-                return Response(
-                    {"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
-                )
-
-            email = id_info["email"]
-            name = id_info["name"]
-            access_token = request.data["google_access_token"]
-            refresh_token = request.data["google_refresh_token"]
-            user, _ = User.objects.get_or_create(email=email, name=name)
-            google_token, _ = GoogleToken.objects.get_or_create(user=user)
-            google_token.access_token = access_token
-            google_token.refresh_token = refresh_token
-            google_token.save()
-
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            refresh_token = str(refresh)
-            serializer = UserSerializer(user)
-            return Response(
-                {
-                    "user": serializer.data,
-                    "access_token": access_token,
-                    "refresh_token": refresh_token,
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        except ValueError:
-            return Response(
-                {"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-class UserViewSet(viewsets.ModelViewSet):
-    serializer_class = UserSerializer
-
-    def get_queryset(self):
-        return User.objects.all()
-
-
-class UserDetailsView(RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+        code = request.data.get("code")
+        token_data = get_auth_tokens(code)
+        data = jwt.decode(token_data["id_token"], options={"verify_signature": False})
+        email = data["email"]
+        name = data["name"]
+        google_access_token = token_data["access_token"]
+        google_refresh_token = token_data["refresh_token"]
+        user, _ = User.objects.get_or_create(email=email, name=name)
+        google_token, _ = GoogleToken.objects.get_or_create(user=user)
+        google_token.access_token = google_access_token
+        google_token.refresh_token = google_refresh_token
+        google_token.save()
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        return Response(
+            {
+                "access": access_token,
+                "refresh": refresh_token,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class UserUpdateView(UpdateAPIView):
