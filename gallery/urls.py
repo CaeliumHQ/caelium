@@ -1,7 +1,7 @@
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 
-from .views import MediaFileViewSet
+from gallery import views
 
-router = DefaultRouter()
-router.register(r"", MediaFileViewSet, basename='media_files')
-urlpatterns = router.urls
+urlpatterns = [
+    path("", views.get_images, name="get_photos"),
+]

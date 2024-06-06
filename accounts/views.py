@@ -1,6 +1,5 @@
 import requests
 from django.conf import settings
-from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework import status, viewsets
 from rest_framework.generics import RetrieveAPIView, UpdateAPIView
