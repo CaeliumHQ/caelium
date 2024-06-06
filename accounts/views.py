@@ -1,6 +1,8 @@
+import os
 import jwt
 import requests
 from django.conf import settings
+from django.core.files.base import ContentFile
 from rest_framework import status, viewsets
 from rest_framework.generics import RetrieveAPIView, UpdateAPIView
 from rest_framework.response import Response
@@ -18,7 +20,7 @@ class GoogleLoginUrl(APIView):
             "https://accounts.google.com/o/oauth2/v2/auth",
             params={
                 "client_id": settings.GOOGLE_CLIENT_ID,
-                "redirect_uri": "http://localhost:3000/api/auth/callback/google",
+                "redirect_uri": f"{os.environ['CLIENT_HOST']}/api/auth/callback/google",
                 "scope": "https://www.googleapis.com/auth/userinfo.email "
                 "https://www.googleapis.com/auth/userinfo.profile",
                 "access_type": "offline",
@@ -38,7 +40,7 @@ def get_auth_tokens(code):
             "code": code,
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": "http://localhost:3000/api/auth/callback/google",
+            "redirect_uri": f"{os.environ['CLIENT_HOST']}/api/auth/callback/google",
             "grant_type": "authorization_code",
         },
         timeout=10,
@@ -53,9 +55,22 @@ class GoogleLogin(APIView):
         data = jwt.decode(token_data["id_token"], options={"verify_signature": False})
         email = data["email"]
         name = data["name"]
+        avatar_url = data["picture"]
         google_access_token = token_data["access_token"]
         google_refresh_token = token_data["refresh_token"]
-        user, _ = User.objects.get_or_create(email=email, name=name)
+        user, created = User.objects.get_or_create(email=email, name=name)
+
+        if created:
+            if avatar_url:
+                try:
+                    response = requests.get(avatar_url, timeout=10)
+                    if response.status_code == 200:
+                        user.avatar.save(
+                            f"{email}.png", ContentFile(response.content), save=True
+                        )
+                except:
+                    pass
+
         google_token, _ = GoogleToken.objects.get_or_create(user=user)
         google_token.access_token = google_access_token
         google_token.refresh_token = google_refresh_token
