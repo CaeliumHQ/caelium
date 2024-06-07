@@ -2,40 +2,88 @@ import json
 import os
 
 import requests
+from django.conf import settings
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.models import GoogleToken, User
+from accounts.views import get_auth_tokens, refresh_access
 
 
-def update_token(code):
-    response = requests.get(
-        url="https://oauth2.googleapis.com/token", data={"code": code}, timeout=10
-    )
+class UpdateToken(APIView):
+    def post(self, request):
+        user = User.objects.get(email=request.user.email)
+        print(request.data)
+        tokens = get_auth_tokens(
+            request.data["code"], f"{os.environ['CLIENT_HOST']}/api/gallery/callback"
+        )
+        print(tokens)
+        google_access_token = tokens["access_token"]
+        google_refresh_token = tokens["refresh_token"]
+        google_token = GoogleToken.objects.get(user=user)
+        google_token.access_token = google_access_token
+        google_token.refresh_token = google_refresh_token
+        google_token.save()
+        return Response({"data": "success"}, status=200)
 
 
 @api_view(["GET"])
 def get_images(request):
     user = User.objects.get(email=request.user.email)
-    token = GoogleToken.objects.get(user=user).access_token
+    token = GoogleToken.objects.get(user=user)
 
-    response = requests.get(
-        url="https://photoslibrary.googleapis.com/v1/mediaItems/media-item-id",
-        timeout=10,
-        headers={
-            "Content-type": "application/json",
-            "Authorization": f"Bearer {token}",
-        },
-    )
+    def fetch_images(access_token):
+        response = requests.get(
+            url="https://photoslibrary.googleapis.com/v1/mediaItems",
+            timeout=10,
+            headers={
+                "Content-type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+        )
+        return response
+
+    response = fetch_images(token.access_token)
+
     if response.status_code != 200:
-        print(response.content)
-        error = json.loads(response.content)["error"]["details"][0]["reason"]
-        if error == "ACCESS_TOKEN_SCOPE_INSUFFICIENT":
-            url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={os.environ['GOOGLE_CLIENT_ID']}&response_type=code&state=state_parameter_passthrough_value&scope=https://www.googleapis.com/auth/photoslibrary.readonly&redirect_uri=http://127.0.0.1:8000/api/auth/google/add_scope/&prompt=consent"
-            return Response({"type": "error", "url": url}, status=203)
-    else:
-        return Response(json.loads(response.content))
-    return Response(({"name": user.name, "data": json.loads(response.content)}))
+        try:
+            error = json.loads(response.content)["error"]["details"][0]["reason"]
+            if error == "ACCESS_TOKEN_SCOPE_INSUFFICIENT":
+                request_url = requests.Request(
+                    "GET",
+                    "https://accounts.google.com/o/oauth2/v2/auth",
+                    params={
+                        "client_id": settings.GOOGLE_CLIENT_ID,
+                        "redirect_uri": f"{os.environ['CLIENT_HOST']}/api/gallery/callback",
+                        "response_type": "code",
+                        "scope": "https://www.googleapis.com/auth/photoslibrary.readonly",
+                        "access_type": "offline",
+                        "prompt": "consent",
+                        "include_granted_scopes": "true",
+                        "login_hint": request.user.email,
+                    },
+                )
+                url = request_url.prepare().url
+                return Response({"type": "error", "url": url}, status=203)
+        except (KeyError, IndexError):
+            refreshed_tokens = refresh_access(token.refresh_token)
+            token.access_token = refreshed_tokens["access_token"]
+            token.save()
+            response = fetch_images(token.access_token)
 
+    if response.status_code != 200:
+        return Response(
+            {"error": "Failed to fetch images"}, status=response.status_code
+        )
 
-o = "4/0AdLIrYck08wPkimpJ_j_dBrFp6RHyGQMF_As64JuWwzSFOByMLsvuhZ_z6jnbTH2EEM2Kg"
+    return Response(
+        [
+            {
+                "url": item["baseUrl"],
+                "filename": item["filename"],
+                "timestamp": item["mediaMetadata"]["creationTime"],
+            }
+            for item in json.loads(response.content)["mediaItems"]
+        ]
+    )

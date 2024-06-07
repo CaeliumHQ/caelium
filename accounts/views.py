@@ -1,4 +1,5 @@
 import os
+
 import jwt
 import requests
 from django.conf import settings
@@ -32,7 +33,7 @@ class GoogleLoginUrl(APIView):
         return Response({"url": url})
 
 
-def get_auth_tokens(code):
+def get_auth_tokens(code, redirect_uri):
     response = requests.post(
         "https://oauth2.googleapis.com/token",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -40,8 +41,22 @@ def get_auth_tokens(code):
             "code": code,
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": f"{os.environ['CLIENT_HOST']}/api/auth/callback/google",
+            "redirect_uri": redirect_uri,
             "grant_type": "authorization_code",
+        },
+        timeout=10,
+    )
+    return response.json()
+
+
+def refresh_access(refresh_token):
+    response = requests.post(
+        "https://oauth2.googleapis.com/token",
+        params={
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
         },
         timeout=10,
     )
@@ -51,7 +66,9 @@ def get_auth_tokens(code):
 class GoogleLogin(APIView):
     def post(self, request):
         code = request.data.get("code")
-        token_data = get_auth_tokens(code)
+        token_data = get_auth_tokens(
+            code, f"{os.environ['CLIENT_HOST']}/api/auth/callback/google"
+        )
         data = jwt.decode(token_data["id_token"], options={"verify_signature": False})
         email = data["email"]
         name = data["name"]
