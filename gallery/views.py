@@ -80,10 +80,44 @@ def get_images(request):
     return Response(
         [
             {
+                "id": item["id"],
                 "url": item["baseUrl"],
                 "filename": item["filename"],
                 "timestamp": item["mediaMetadata"]["creationTime"],
             }
             for item in json.loads(response.content)["mediaItems"]
         ]
+    )
+
+
+@api_view(["GET"])
+def detail_image(request, image_id):
+    user = User.objects.get(email=request.user.email)
+    token = GoogleToken.objects.get(user=user)
+
+    def fetch_image(access_token):
+        response = requests.get(
+            url=f"https://photoslibrary.googleapis.com/v1/mediaItems/{image_id}",
+            timeout=10,
+            headers={
+                "Content-type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+        )
+        return response
+
+    response = fetch_image(token.access_token)
+    if response.status_code == 401:
+        refreshed_tokens = refresh_access(token.refresh_token)
+        token.access_token = refreshed_tokens["access_token"]
+        token.save()
+        response = fetch_image(token.access_token)
+    data = response.json()
+    return Response(
+        {
+            "id": data["id"],
+            "url": data["baseUrl"],
+            "filename": data["filename"],
+            "timestamp": data["mediaMetadata"]["creationTime"],
+        }
     )
