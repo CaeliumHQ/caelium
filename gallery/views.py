@@ -41,6 +41,9 @@ def get_images(request):
                 "Content-type": "application/json",
                 "Authorization": f"Bearer {access_token}",
             },
+            # params={
+            #     "pageSize": "20",
+            # },
         )
         return response
 
@@ -93,7 +96,7 @@ def get_images(request):
 @api_view(["GET"])
 def detail_image(request, image_id):
     user = User.objects.get(email=request.user.email)
-    token = GoogleToken.objects.get(user=user)
+    tokens = GoogleToken.objects.get(user=user)
 
     def fetch_image(access_token):
         response = requests.get(
@@ -106,12 +109,12 @@ def detail_image(request, image_id):
         )
         return response
 
-    response = fetch_image(token.access_token)
+    response = fetch_image(tokens.access_token)
     if response.status_code == 401:
-        refreshed_tokens = refresh_access(token.refresh_token)
-        token.access_token = refreshed_tokens["access_token"]
-        token.save()
-        response = fetch_image(token.access_token)
+        refreshed_tokens = refresh_access(tokens.refresh_token)
+        tokens.access_token = refreshed_tokens["access_token"]
+        tokens.save()
+        response = fetch_image(tokens.access_token)
     data = response.json()
     return Response(
         {
@@ -121,3 +124,57 @@ def detail_image(request, image_id):
             "timestamp": data["mediaMetadata"]["creationTime"],
         }
     )
+
+
+@api_view(["GET"])
+def get_albums(request):
+    user = User.objects.get(email=request.user.email)
+    tokens = GoogleToken.objects.get(user=user)
+
+    def get_album_data(album_id):
+        response = requests.post(
+            url="https://photoslibrary.googleapis.com/v1/mediaItems:search",
+            headers={
+                "Content-type": "application/json",
+                "Authorization": f"Bearer {tokens.access_token}",
+            },
+            timeout=10,
+            params={"albumId": album_id},
+        )
+        data = [
+            {
+                "id": item["id"],
+                "url": item["baseUrl"],
+                "filename": item["filename"],
+                "timestamp": item["mediaMetadata"]["creationTime"],
+            }
+            for item in json.loads(response.content)["mediaItems"]
+        ]
+        return data
+
+    def album_list():
+        return requests.get(
+            url="https://photoslibrary.googleapis.com/v1/albums",
+            headers={
+                "Content-type": "application/json",
+                "Authorization": f"Bearer {tokens.access_token}",
+            },
+            timeout=10,
+        )
+
+    response = album_list()
+    if response.status_code == 401:
+        refreshed_tokens = refresh_access(tokens.refresh_token)
+        tokens.access_token = refreshed_tokens["access_token"]
+        tokens.save()
+        response = album_list()
+
+    data = [
+        {
+            "id": items["id"],
+            "title": items["title"],
+            "images": get_album_data(items["id"]),
+        }
+        for items in response.json()["albums"]
+    ]
+    return Response(data)
