@@ -27,6 +27,7 @@ class GoogleLoginUrl(APIView):
                 "access_type": "offline",
                 "response_type": "code",
                 "prompt": "consent",
+                "include_granted_scopes": "true",
             },
         )
         url = request_url.prepare().url
