@@ -1,5 +1,6 @@
 import os
 
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -123,10 +124,14 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def validate(self, data):
-        if "file" not in data and "content" not in data:
-            raise serializers.ValidationError(
-                "Either 'file' or 'content' must be provided."
+        content = data.get("content")
+        file = data.get("file")
+
+        if (content is None or content.strip() == "") and not file:
+            raise ValidationError(
+                "Either content or file must be provided and content cannot be an empty string."
             )
+
         return data
 
     def validate_file(self, value):
