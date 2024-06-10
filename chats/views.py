@@ -2,6 +2,9 @@ from rest_framework import filters, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from accounts.models import User
+from accounts.serializers import UserSerializer
+
 from .models import Chat, Message
 from .serializers import ChatSerializer, MessageCreateSerializer, MessageSerializer
 
@@ -39,3 +42,10 @@ class MessageViewSet(viewsets.ModelViewSet):
         chat_id = self.kwargs.get("chat_id")
         if Chat.objects.filter(id=chat_id, participants=self.request.user):
             return Message.objects.filter(chat_id=chat_id)
+
+
+class ChatUsers(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        return User.objects.all().exclude(email=self.request.user.email)
