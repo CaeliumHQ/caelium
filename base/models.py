@@ -16,10 +16,23 @@ class Couple(models.Model):
 
 
 class Family(models.Model):
-    members = models.ManyToManyField(User)
+    name = models.CharField(max_length=100, null=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="families", null=True)
+    tasks = models.ManyToManyField('base.Task', blank=True)
 
     class Meta:
         verbose_name_plural = "Families"
+        
+    def __str__(self):
+        return f"{self.name} House"
+
+
+class Member(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    family = models.ForeignKey(Family, on_delete=models.CASCADE)
+    role = models.CharField(
+        max_length=20, choices=[("parent", "Parent"), ("child", "Child")]
+    )
 
 
 class Work(models.Model):
@@ -53,7 +66,7 @@ class Event(models.Model):
     name = models.CharField(max_length=255)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    all_day =  models.BooleanField(default=True)
+    all_day = models.BooleanField(default=True)
     location = models.CharField(max_length=255, blank=True, null=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.TextField(blank=True, null=True)
