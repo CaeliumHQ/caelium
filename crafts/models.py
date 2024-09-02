@@ -14,3 +14,6 @@ class Craft(models.Model):
     date = models.DateTimeField()
     space = models.CharField(max_length=10, choices=SPACES)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.owner} - {self.title}"
