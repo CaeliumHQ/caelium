@@ -36,7 +36,7 @@ jobs:
       run: |
         echo "$SSH_KEY" > server.pem
         chmod 600 server.pem
-        scp -i server.pem -o StrictHostKeyChecking=no -r . $USER@$HOST:$REPO_PATH/
+        scp -i server.pem -o StrictHostKeyChecking=no -r * $USER@$HOST:$REPO_PATH/
         ssh -i server.pem $USER@$HOST << 'EOF'
         cd $REPO_PATH
         source $ENV_PATH/bin/activate
