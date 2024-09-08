@@ -1,32 +1,50 @@
-name: Deploy Django Application to EC2
+name: Django CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   deploy:
+
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.7.0
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v3
       with:
-        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+        python-version: 3.12
 
-    - name: Copy files to EC2
+    - name: Install Dependencies
       run: |
-        scp -i server.pem -o StrictHostKeyChecking=no -r . ubuntu@ec2-13-127-15-114.ap-south-1.compute.amazonaws.com:/home/ubuntu/caelium/
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-    - name: SSH into EC2 and deploy
+    - name: Run Tests
       run: |
-        ssh -i server.pem ubuntu@ec2-13-127-15-114.ap-south-1.compute.amazonaws.com << 'EOF'
-        cd /home/ubuntu/caelium
-        source /home/ubuntu/caelium/env/bin/activate
+        python manage.py test
+
+    - name: Deploy to EC2
+      if: github.ref == 'refs/heads/main'  # Only deploy if on main branch
+      env:
+        SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        USER: ubuntu
+        HOST: ec2-13-127-15-114.ap-south-1.compute.amazonaws.com
+        REPO_PATH: /home/ubuntu/caelium
+        ENV_PATH: /home/ubuntu/caelium/env
+      run: |
+        echo "$SSH_KEY" > server.pem
+        chmod 600 server.pem
+        scp -i server.pem -o StrictHostKeyChecking=no -r . $USER@$HOST:$REPO_PATH/
+        ssh -i server.pem $USER@$HOST << 'EOF'
+        cd $REPO_PATH
+        source $ENV_PATH/bin/activate
         pip install -r requirements.txt
         sudo supervisorctl restart caelium
         EOF
+      continue-on-error: false  # Fails the job if deployment fails
