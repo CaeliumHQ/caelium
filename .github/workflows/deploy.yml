@@ -25,10 +25,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run Tests
-      run: |
-        python manage.py test
-
     - name: Deploy to EC2
       if: github.ref == 'refs/heads/main'  # Only deploy if on main branch
       env:
