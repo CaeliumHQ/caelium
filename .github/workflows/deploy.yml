@@ -41,6 +41,8 @@ jobs:
         cd $REPO_PATH
         source $ENV_PATH/bin/activate
         pip install -r requirements.txt
+        python manage.py makemigrations
+        python manage.py migrate
         sudo supervisorctl restart caelium
         EOF
       continue-on-error: false  # Fails the job if deployment fails
