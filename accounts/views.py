@@ -96,13 +96,13 @@ class GoogleLogin(APIView):
                     f"Our goal is to provide you with the best experience possible, and I'm here to ensure that you achieve success with our platform.\n\nBest regards,\nJerit Baiju",
                 )
 
-                if data["picture"]:
-                    try:
-                        response = requests.get(data["picture"], timeout=10)
-                        if response.status_code == 200:
-                            user.avatar.save(f"{email}.png", ContentFile(response.content), save=True)
-                    except:
-                        pass
+                try:
+                    response = requests.get(data["picture"], timeout=10)
+                    if response.status_code == 200:
+                        user.avatar.save(f"{email}.png", ContentFile(response.content), save=True)
+                except:
+                    pass
+                    
         except IntegrityError:
             user = User.objects.get(email=email)
 
