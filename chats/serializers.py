@@ -136,7 +136,7 @@ class MessageCreateSerializer(serializers.ModelSerializer):
 
     def validate_file(self, value):
         if value:
-            max_size = 5 * 1024 * 1024  # 5 MB
+            max_size = 10 * 1024 * 1024  # 10 MB
             if value.size > max_size:
                 raise serializers.ValidationError("File size cannot exceed 5 MB.")
             return value
