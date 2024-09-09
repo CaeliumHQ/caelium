@@ -4,11 +4,14 @@ import jwt
 import requests
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.db import IntegrityError
 from rest_framework import status, viewsets
 from rest_framework.generics import RetrieveAPIView, UpdateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from chats.models import Chat, Message
 
 from .models import GoogleToken, User
 from .serializers import UserSerializer
@@ -67,35 +70,53 @@ def refresh_access(refresh_token):
 class GoogleLogin(APIView):
     def post(self, request):
         code = request.data.get("code")
-        token_data = get_auth_tokens(
-            code, f"{os.environ['CLIENT_HOST']}/api/auth/callback/google"
-        )
+        token_data = get_auth_tokens(code, f"{os.environ['CLIENT_HOST']}/api/auth/callback/google")
         data = jwt.decode(token_data["id_token"], options={"verify_signature": False})
         email = data["email"]
         name = data["name"]
         avatar_url = data["picture"]
         google_access_token = token_data["access_token"]
         google_refresh_token = token_data["refresh_token"]
-        user, created = User.objects.get_or_create(email=email, name=name)
 
-        if created:
-            if avatar_url:
-                try:
-                    response = requests.get(avatar_url, timeout=10)
-                    if response.status_code == 200:
-                        user.avatar.save(
-                            f"{email}.png", ContentFile(response.content), save=True
-                        )
-                except:
-                    pass
+        try:
+            user, created = User.objects.get_or_create(email=email)
+            if created:
+                user.name = name
+                user.save()
+                # Fetch the admin user
+                admin_user = User.objects.get(email="jeritalumkal@gmail.com")
+                chat = Chat.objects.create()
+                chat.participants.add(admin_user, user)
+                chat.save()
+                # Create the personalized welcome message
+                Message.objects.create(
+                    chat=chat,
+                    sender=admin_user,
+                    type="txt",
+                    content=f"Dear {name},\n\nWelcome to our platform! I'm Jerit Baiju, the lead behind this product. "
+                    f"We are delighted to have you as part of our community. As you start exploring, please feel free to reach out to me if you have any questions or need assistance. "
+                    f"Our goal is to provide you with the best experience possible, and I'm here to ensure that you achieve success with our platform.\n\nBest regards,\nJerit Baiju",
+                )
+                
+                if avatar_url:
+                    try:
+                        response = requests.get(avatar_url, timeout=10)
+                        if response.status_code == 200:
+                            user.avatar.save(f"{email}.png", ContentFile(response.content), save=True)
+                    except:
+                        pass
+        except IntegrityError:
+            user = User.objects.get(email=email)
 
         google_token, _ = GoogleToken.objects.get_or_create(user=user)
         google_token.access_token = google_access_token
         google_token.refresh_token = google_refresh_token
         google_token.save()
+
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
+
         return Response(
             {
                 "access": access_token,
