@@ -74,10 +74,8 @@ class GoogleLogin(APIView):
         data = jwt.decode(token_data["id_token"], options={"verify_signature": False})
         email = data["email"]
         name = data["name"]
-        avatar_url = data["picture"]
         google_access_token = token_data["access_token"]
         google_refresh_token = token_data["refresh_token"]
-
         try:
             user, created = User.objects.get_or_create(email=email)
             if created:
@@ -97,10 +95,10 @@ class GoogleLogin(APIView):
                     f"We are delighted to have you as part of our community. As you start exploring, please feel free to reach out to me if you have any questions or need assistance. "
                     f"Our goal is to provide you with the best experience possible, and I'm here to ensure that you achieve success with our platform.\n\nBest regards,\nJerit Baiju",
                 )
-                
-                if avatar_url:
+
+                if data["picture"]:
                     try:
-                        response = requests.get(avatar_url, timeout=10)
+                        response = requests.get(data["picture"], timeout=10)
                         if response.status_code == 200:
                             user.avatar.save(f"{email}.png", ContentFile(response.content), save=True)
                     except:
