@@ -91,9 +91,13 @@ class GoogleLogin(APIView):
                     chat=chat,
                     sender=admin_user,
                     type="txt",
-                    content=f"Dear {name},\n\nWelcome to our platform! I'm Jerit Baiju, the lead behind this product. "
-                    f"We are delighted to have you as part of our community. As you start exploring, please feel free to reach out to me if you have any questions or need assistance. "
-                    f"Our goal is to provide you with the best experience possible, and I'm here to ensure that you achieve success with our platform.\n\nBest regards,\nJerit Baiju",
+                    content=f"Hi {name},\n\n"
+                    f"Welcome to Caelium! 🌟 We're excited to have you join us. "
+                    f"I'm Jerit Baiju, The Founder of Caelium, and I want to personally thank you for becoming part of our community. "
+                    f"If you have any questions, ideas, or just want to connect, feel free to reach out. "
+                    f"Together, we can achieve great things! 🚀\n\n"
+                    f"Best regards,\n"
+                    f"Jerit",
                 )
 
                 try:
@@ -102,7 +106,7 @@ class GoogleLogin(APIView):
                         user.avatar.save(f"{email}.png", ContentFile(response.content), save=True)
                 except:
                     pass
-                    
+
         except IntegrityError:
             user = User.objects.get(email=email)
 
