@@ -138,5 +138,5 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         if value:
             max_size = 10 * 1024 * 1024  # 10 MB
             if value.size > max_size:
-                raise serializers.ValidationError("File size cannot exceed 5 MB.")
+                raise serializers.ValidationError("File size cannot exceed 10 MB.")
             return value
