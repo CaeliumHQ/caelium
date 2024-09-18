@@ -6,15 +6,16 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from rest_framework import status, viewsets
-from rest_framework.generics import RetrieveAPIView, UpdateAPIView
+from rest_framework.generics import RetrieveAPIView, RetrieveUpdateAPIView, UpdateAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from chats.models import Chat, Message
 
-from .models import GoogleToken, User
-from .serializers import UserSerializer
+from .models import FCMToken, GoogleToken, User
+from .serializers import FCMTokenSerializer, UserSerializer
 
 
 class GoogleLoginUrl(APIView):
@@ -152,3 +153,13 @@ class UserViewSet(viewsets.ModelViewSet):
 class UserDetailsView(RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+
+class FCMTokenUpdateView(RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = FCMTokenSerializer
+
+    def get_object(self):
+        # Try to get the FCM token for the current user, or create a new one
+        obj, _ = FCMToken.objects.get_or_create(user=self.request.user)
+        return obj

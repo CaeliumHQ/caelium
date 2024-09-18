@@ -73,3 +73,12 @@ class GoogleToken(models.Model):
 
     def __str__(self):
         return f"GoogleToken for {self.user.email}"
+
+
+class FCMToken(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="fcm_token")
+    token = models.CharField(max_length=255, unique=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user} - FCM Token"
