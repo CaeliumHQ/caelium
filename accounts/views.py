@@ -79,7 +79,7 @@ class GoogleLogin(APIView):
         google_refresh_token = token_data["refresh_token"]
 
         # Generate username based on email if not provided
-        username = email.split("@")[0]  # Using the part before the '@' for username
+        username = email.split("@")[0]
 
         try:
             # Check if user already exists with the email
