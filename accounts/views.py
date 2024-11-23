@@ -77,17 +77,26 @@ class GoogleLogin(APIView):
         name = data["name"]
         google_access_token = token_data["access_token"]
         google_refresh_token = token_data["refresh_token"]
+
+        # Generate username based on email if not provided
+        username = email.split("@")[0]
+
         try:
+            # Check if user already exists with the email
             user, created = User.objects.get_or_create(email=email)
             if created:
+                # If new user, set additional fields like name and username
                 user.name = name
+                user.username = username
                 user.save()
-                # Fetch the admin user
+
+                # Fetch the admin user to create a welcome chat
                 admin_user = User.objects.get(email="jeritalumkal@gmail.com")
                 chat = Chat.objects.create()
                 chat.participants.add(admin_user, user)
                 chat.save()
-                # Create the personalized welcome message
+
+                # Send the personalized welcome message
                 Message.objects.create(
                     chat=chat,
                     sender=admin_user,
@@ -101,21 +110,24 @@ class GoogleLogin(APIView):
                     f"Jerit",
                 )
 
+                # Attempt to download the user's avatar if available
                 try:
                     response = requests.get(data["picture"], timeout=10)
                     if response.status_code == 200:
                         user.avatar.save(f"{email}.png", ContentFile(response.content), save=True)
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error downloading avatar: {e}")
 
         except IntegrityError:
             user = User.objects.get(email=email)
 
+        # Update GoogleToken with access and refresh tokens
         google_token, _ = GoogleToken.objects.get_or_create(user=user)
         google_token.access_token = google_access_token
         google_token.refresh_token = google_refresh_token
         google_token.save()
 
+        # Create JWT tokens for the user
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
