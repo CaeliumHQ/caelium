@@ -14,6 +14,7 @@ urlpatterns = [
     path("api/chats/", include("chats.urls")),
     path("api/crafts/", include("crafts.urls")),
     path("api/gallery/", include("gallery.urls")),
+    path("dash/", include("dash.urls")),
 ]
 
 if settings.DEBUG:

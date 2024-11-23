@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "base.apps.BaseConfig",
     "chats.apps.ChatsConfig",
     "crafts.apps.CraftsConfig",
+    "dash.apps.DashConfig",
     "gallery.apps.GalleryConfig",
 ]
 
