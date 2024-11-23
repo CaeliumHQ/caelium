@@ -82,16 +82,12 @@ class GoogleLogin(APIView):
         username = email.split("@")[0]
 
         try:
-            # Check if user already exists with the email
             user, created = User.objects.get_or_create(email=email)
             if created:
-                # If new user, set additional fields like name and username
                 user.name = name
                 user.username = username
                 user.save()
-
-                # Fetch the admin user to create a welcome chat
-                admin_user = User.objects.get(email="jeritalumkal@gmail.com")
+                admin_user = User.objects.get(email="app@caelium.co")
                 chat = Chat.objects.create()
                 chat.participants.add(admin_user, user)
                 chat.save()
@@ -101,13 +97,17 @@ class GoogleLogin(APIView):
                     chat=chat,
                     sender=admin_user,
                     type="txt",
-                    content=f"Hi {name},\n\n"
-                    f"Welcome to Caelium! 🌟 We're excited to have you join us. "
-                    f"I'm Jerit Baiju, The Founder of Caelium, and I want to personally thank you for becoming part of our community. "
-                    f"If you have any questions, ideas, or just want to connect, feel free to reach out. "
-                    f"Together, we can achieve great things! 🚀\n\n"
-                    f"Best regards,\n"
-                    f"Jerit",
+                    content=(
+                        f"Hi {name},\n\n"
+                        f"Welcome to Caelium! 🌟 We're thrilled to have you on board. "
+                        f"Caelium is all about building a connected and innovative community, "
+                        f"and we're excited to see what we can achieve together.\n\n"
+                        f"If you have any questions, feedback, or if you ever need help, feel free to reach out. "
+                        f"You can send messages or report any issues directly here, and we'll be happy to assist you.\n\n"
+                        f"Your journey with Caelium starts now, and we can't wait to see you grow within our platform! 🚀\n\n"
+                        f"Best regards,\n"
+                        f"The Caelium Team"
+                    ),
                 )
 
                 # Attempt to download the user's avatar if available
