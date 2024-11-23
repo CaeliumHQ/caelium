@@ -41,8 +41,8 @@ class User(AbstractUser):
         ("Female", "Female"),
         ("Other", "Other"),
     ]
-    username = models.CharField(max_length=150, unique=True)  # Added username field
-    email = models.EmailField(unique=True)  # Email still unique
+    username = models.CharField(max_length=150, unique=True, null=True, blank=True)
+    email = models.EmailField(unique=True)
     name = models.CharField(max_length=24)
     avatar = models.ImageField(
         upload_to="avatars/",
