@@ -6,7 +6,7 @@ from django.urls import include, path
 admin.site.site_header = "Caelium HQ"
 admin.site.site_title = "Caelium HQ"
 admin.site.index_title = "Caelium HQ"
-¸˛
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("base.urls")),
