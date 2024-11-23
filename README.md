@@ -25,10 +25,6 @@ Follow these steps to set up the backend on your local machine. This guide is su
 
 Start by forking the repository to your GitHub account. This allows you to freely experiment with the code and contribute back through pull requests.
 
-1. Go to the [Caelium GitHub Repository](https://github.com/your-username/caelium).
-2. Click the **Fork** button on the top-right of the page.
-3. Clone your fork to your local machine:
-
 ```bash
 git clone https://github.com/your-username/caelium.git
 cd caelium
@@ -66,7 +62,7 @@ cp .env.sample .env
 
 2. Open the `.env` file and update the values for the following variables:
 
-   - `DJANGO_SECRET_KEY`: A random secret key for your Django app (use [this generator](https://miniwebtool.com/django-secret-key-generator/)).
+   - `DJANGO_SECRET_KEY`: A random secret key for your Django app.
    - `CLIENT_HOST`: The URL for your frontend client (e.g., `http://localhost:3000`).
    - `env`: Set this to `dev` during development.
    - `GOOGLE_CLIENT_ID`: Your Google Client ID for OAuth authentication.
@@ -147,7 +143,7 @@ We welcome contributions from the open-source community. To get started, follow 
 
 6. **Create a pull request** with a description of what you've changed and why.
 
-Please refer to our [contributing guidelines](CONTRIBUTING.md) for more detailed instructions and best practices.
+Please refer to our [contributing guidelines](https://github.com/CaeliumHQ/.github/blob/main/CONTRIBUTING.md) for more detailed instructions and best practices.
 
 ---
 
