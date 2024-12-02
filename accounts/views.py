@@ -2,9 +2,12 @@ import os
 
 import jwt
 import requests
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.generics import RetrieveAPIView, RetrieveUpdateAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -67,7 +70,7 @@ def refresh_access(refresh_token):
     )
     return response.json()
 
-# environment=DJANGO_SETTINGS_MODULE="main.settings",PATH="/home/ubuntu/caelium/env/bin:%(ENV_PATH)s"
+
 class GoogleLogin(APIView):
     def post(self, request):
         code = request.data.get("code")
@@ -131,6 +134,16 @@ class GoogleLogin(APIView):
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "admin_group",
+            {
+                "type": "log_entry",
+                "message": f"Logged in user: {user.name}",
+                "timestamp": timezone.now().isoformat(),
+            },
+        )
 
         return Response(
             {
