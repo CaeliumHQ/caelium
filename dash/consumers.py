@@ -1,8 +1,11 @@
+import json
+
+import jwt
 from channels.generic.websocket import WebsocketConsumer
 from django.conf import settings
+from asgiref.sync import async_to_sync
+
 from accounts.models import User
-import jwt
-import json
 
 
 class BaseConsumer(WebsocketConsumer):
@@ -13,17 +16,28 @@ class BaseConsumer(WebsocketConsumer):
             decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             user_id = decoded_token["user_id"]
             user = User.objects.get(id=user_id)
-            self.accept()
-            self.send(text_data=json.dumps({"message": f"Welcome on Board admin, {user.username}!"}))
+            if user.email == "admin@jerit.in":
+                self.accept()
+                # Add admin to a group for broadcasting
+                async_to_sync(self.channel_layer.group_add)("admin_group", self.channel_name)
+                self.send(text_data=json.dumps({"message": f"Welcome on Board admin, {user.username}!"}))
+            else:
+                self.close(code=4003)
+
         except jwt.ExpiredSignatureError:
-            self.close()
+            self.close(code=4001)
         except jwt.DecodeError:
-            self.close()
+            self.close(code=4002)
         except User.DoesNotExist:
-            self.close()
+            self.close(code=4004)
 
     def disconnect(self, close_code):
-        pass
+        if hasattr(self, 'user') and self.user.email == "admin@jerit.in":
+            async_to_sync(self.channel_layer.group_discard)("admin_group", self.channel_name)
 
     def receive(self, text_data):
         pass
+
+    def chat_notification(self, event):
+        # Handle incoming chat notifications
+        self.send(text_data=json.dumps(event))

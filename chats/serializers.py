@@ -3,6 +3,8 @@ import os
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import serializers
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 from accounts.models import User
 from accounts.serializers import UserSerializer
@@ -121,7 +123,23 @@ class MessageCreateSerializer(serializers.ModelSerializer):
                 validated_data["type"] = "doc"
         else:
             validated_data["type"] = "txt"
-        return super().create(validated_data)
+        
+        message = super().create(validated_data)
+        
+        # Send notification to admin through websocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "admin_group",
+            {
+                "type": "chat_notification",
+                "message": f"New message from {message.sender.name} in chat {message.chat.id}",
+                "chat_id": message.chat.id,
+                "sender": message.sender.name,
+                "timestamp": message.timestamp.isoformat()
+            }
+        )
+        
+        return message
 
     def validate(self, data):
         content = data.get("content")
