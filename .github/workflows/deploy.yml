@@ -1,48 +1,37 @@
-name: Django CI/CD
+name: Deploy to EC2
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v3
-      with:
-        python-version: 3.12
-
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Deploy to EC2
-      if: github.ref == 'refs/heads/main'  # Only deploy if on main branch
+    - uses: actions/checkout@v2
+    
+    - name: Configure AWS credentials
       env:
-        SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-        USER: ubuntu
-        HOST: ec2-13-127-15-114.ap-south-1.compute.amazonaws.com
-        REPO_PATH: /home/ubuntu/caelium
-        ENV_PATH: /home/ubuntu/caelium/env
+        SERVER_SSH_KEY: ${{ secrets.SERVER_PEM }}
+        SERVER_HOST: ${{ secrets.EC2_HOST }}
+        SERVER_USERNAME: ${{ secrets.EC2_USERNAME }}
       run: |
-        echo "$SSH_KEY" > server.pem
-        chmod 600 server.pem
-        scp -i server.pem -o StrictHostKeyChecking=no -r * $USER@$HOST:$REPO_PATH/
-        ssh -i server.pem $USER@$HOST << 'EOF'
-        cd $REPO_PATH
-        source $ENV_PATH/bin/activate
-        pip install -r requirements.txt
-        python manage.py makemigrations
-        python manage.py migrate
-        sudo supervisorctl restart caelium
-        EOF
-      continue-on-error: false  # Fails the job if deployment fails
+        mkdir -p ~/.ssh
+        echo "$SERVER_SSH_KEY" > ~/.ssh/server.pem
+        chmod 600 ~/.ssh/server.pem
+        
+    - name: Deploy to EC2
+      env:
+        SERVER_HOST: ${{ secrets.EC2_HOST }}
+        SERVER_USERNAME: ${{ secrets.EC2_USERNAME }}
+      run: |
+        ssh -i ~/.ssh/server.pem -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST '
+          cd ~/caelium &&
+          git pull origin main &&
+          source venv/bin/activate &&
+          pip install -r requirements.txt &&
+          python manage.py makemigrations &&
+          python manage.py migrate &&
+          sudo supervisorctl restart caelium
+        '
