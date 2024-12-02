@@ -130,7 +130,7 @@ class MessageCreateSerializer(serializers.ModelSerializer):
             "admin_group",
             {
                 "type": "log_entry",
-                "message": f"Message from {message.sender.name} to"
+                "message": f"Message from {message.sender.name} to "
                 f"{message.chat.participants.exclude(id=message.sender.id).first().name}: '{message.content}'",
                 "chat_id": message.chat.id,
                 "sender": message.sender.name,
