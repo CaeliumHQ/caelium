@@ -67,7 +67,7 @@ def refresh_access(refresh_token):
     )
     return response.json()
 
-
+# environment=DJANGO_SETTINGS_MODULE="main.settings",PATH="/home/ubuntu/caelium/env/bin:%(ENV_PATH)s"
 class GoogleLogin(APIView):
     def post(self, request):
         code = request.data.get("code")
