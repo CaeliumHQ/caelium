@@ -1,10 +1,10 @@
 import os
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import serializers
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 
 from accounts.models import User
 from accounts.serializers import UserSerializer
@@ -49,9 +49,7 @@ class ChatSerializer(serializers.ModelSerializer):
             participant = User.objects.get(pk=participant_id)
         except User.DoesNotExist as exc:
             raise serializers.ValidationError("Participant does not exist") from exc
-        existing_chats = Chat.objects.filter(participants=current_user).filter(
-            participants=participant_id
-        )
+        existing_chats = Chat.objects.filter(participants=current_user).filter(participants=participant_id)
         if existing_chats.exists():
             return existing_chats.first()
         chat = Chat.objects.create()
@@ -123,22 +121,23 @@ class MessageCreateSerializer(serializers.ModelSerializer):
                 validated_data["type"] = "doc"
         else:
             validated_data["type"] = "txt"
-        
+
         message = super().create(validated_data)
-        
+
         # Send notification to admin through websocket
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             "admin_group",
             {
-                "type": "chat_notification",
-                "message": f"New message from {message.sender.name} in chat {message.chat.id}",
+                "type": "log_entry",
+                "message": f"Message from {message.sender.name} to"
+                f"{message.chat.participants.exclude(id=message.sender.id).first().name}: '{message.content}'",
                 "chat_id": message.chat.id,
                 "sender": message.sender.name,
-                "timestamp": message.timestamp.isoformat()
-            }
+                "timestamp": message.timestamp.isoformat(),
+            },
         )
-        
+
         return message
 
     def validate(self, data):
@@ -146,9 +145,7 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         file = data.get("file")
 
         if (content is None or content.strip() == "") and not file:
-            raise ValidationError(
-                "Either content or file must be provided and content cannot be an empty string."
-            )
+            raise ValidationError("Either content or file must be provided and content cannot be an empty string.")
 
         return data
 

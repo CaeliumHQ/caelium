@@ -38,6 +38,5 @@ class BaseConsumer(WebsocketConsumer):
     def receive(self, text_data):
         pass
 
-    def chat_notification(self, event):
-        # Handle incoming chat notifications
+    def log_entry(self, event):
         self.send(text_data=json.dumps(event))
