@@ -118,7 +118,7 @@ class GoogleLogin(APIView):
                     response = requests.get(data["picture"], timeout=10)
                     if response.status_code == 200:
                         user.avatar.save(f"{email}.png", ContentFile(response.content), save=True)
-                except Exception as e:
+                except requests.exceptions.RequestException as e:
                     print(f"Error downloading avatar: {e}")
 
         except IntegrityError:
