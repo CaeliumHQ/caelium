@@ -24,9 +24,7 @@ class ChatViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def get_queryset(self):
-        return Chat.objects.filter(participants=self.request.user).order_by(
-            "-updated_time"
-        )
+        return Chat.objects.filter(participants=self.request.user).order_by("-updated_time")
 
 
 class MessageViewSet(viewsets.ModelViewSet):
