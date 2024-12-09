@@ -1,14 +1,19 @@
 import json
 
 import jwt
+from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.conf import settings
-from asgiref.sync import async_to_sync
 
 from accounts.models import User
+from chats.models import Chat, Message
 
 
 class BaseConsumer(WebsocketConsumer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = None
 
     def connect(self):
         token = self.scope["url_route"]["kwargs"]["token"]
@@ -19,10 +24,7 @@ class BaseConsumer(WebsocketConsumer):
             self.accept()
 
             # Add the user to a group named after their user ID
-            async_to_sync(self.channel_layer.group_add)(
-                f"user_{user_id}",
-                self.channel_name
-            )
+            async_to_sync(self.channel_layer.group_add)(f"user_{user_id}", self.channel_name)
 
             self.send(text_data=json.dumps({"message": f"Welcome to Caelium, {self.user.username}!"}))
         except (jwt.ExpiredSignatureError, jwt.DecodeError, User.DoesNotExist):
@@ -30,35 +32,19 @@ class BaseConsumer(WebsocketConsumer):
 
     def disconnect(self, close_code):
         # Remove the user from their group on disconnect
-        async_to_sync(self.channel_layer.group_discard)(
-            f"user_{self.user.id}",
-            self.channel_name
-        )
+        async_to_sync(self.channel_layer.group_discard)(f"user_{self.user.id}", self.channel_name)
 
     def receive(self, text_data):
         data = json.loads(text_data)
-        message = data.get("message")
-        receiver_id = data.get("receiver_id")
-
-
-        if message and receiver_id:
-            print(message, receiver_id)
-            # Send the message to the receiver's group
-            async_to_sync(self.channel_layer.group_send)(
-                f"user_{receiver_id}",
-                {
-                    "type": "chat_message",
-                    "message": message,
-                    "sender": self.user.username
-                }
-            )
+        print(data)
+        message = Message.objects.create(chat_id=data["chat_id"], sender=self.user, content=data["message"], type="txt")
+        if message:
+            for recipient in Chat.objects.get(id=data["chat_id"]).participants.all():
+                if recipient.id is not self.user.id:
+                    async_to_sync(self.channel_layer.group_send)(
+                        f"user_{recipient.id}",
+                        {"type": "chat_message", "message": message.content, "sender": self.user.username},
+                    )
 
     def chat_message(self, event):
-        message = event["message"]
-        sender = event["sender"]
-
-        # Send the message to WebSocket
-        self.send(text_data=json.dumps({
-            "message": message,
-            "sender": sender
-        }))
+        self.send(text_data=json.dumps({"message": event["message"], "sender": event["sender"], "message_type": "text"}))
