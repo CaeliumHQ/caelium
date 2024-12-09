@@ -9,12 +9,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "main.settings")
 django.setup()
 
 from base import routing as base_routing
-from chats import routing as chats_routing
 from dash import routing as dash_routing
 
 # Combine websocket_urlpatterns from both apps
 websocket_urlpatterns = (
-    base_routing.websocket_urlpatterns + chats_routing.websocket_urlpatterns + dash_routing.websocket_urlpatterns
+    base_routing.websocket_urlpatterns  + dash_routing.websocket_urlpatterns
 )
 
 # Get the ASGI application
