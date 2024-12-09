@@ -36,15 +36,25 @@ class BaseConsumer(WebsocketConsumer):
 
     def receive(self, text_data):
         data = json.loads(text_data)
-        print(data)
         message = Message.objects.create(chat_id=data["chat_id"], sender=self.user, content=data["message"], type="txt")
         if message:
             for recipient in Chat.objects.get(id=data["chat_id"]).participants.all():
                 if recipient.id is not self.user.id:
                     async_to_sync(self.channel_layer.group_send)(
                         f"user_{recipient.id}",
-                        {"type": "chat_message", "message": message.content, "sender": self.user.username},
+                        {"type": "chat_message", "message": message},
                     )
 
     def chat_message(self, event):
-        self.send(text_data=json.dumps({"message": event["message"], "sender": event["sender"], "message_type": "text"}))
+        message = event["message"]
+        self.send(
+            text_data=json.dumps(
+                {
+                    "category": "message",
+                    "type": message.type,
+                    "content": message.content,
+                    "sender": message.sender.id,
+                    "timestamp": str(message.timestamp),
+                }
+            )
+        )
