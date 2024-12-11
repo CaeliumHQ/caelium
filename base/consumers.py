@@ -31,7 +31,8 @@ class BaseConsumer(WebsocketConsumer):
             self.close()
 
     def disconnect(self, close_code):
-        async_to_sync(self.channel_layer.group_discard)(f"user_{self.user.id}", self.channel_name)
+        if self.user:
+            async_to_sync(self.channel_layer.group_discard)(f"user_{self.user.id}", self.channel_name)
 
     def receive(self, text_data):
         try:
