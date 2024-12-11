@@ -44,7 +44,7 @@ class BaseConsumer(WebsocketConsumer):
                     content=data["message"],
                     type="txt",
                 )
-                chat = Chat.objects.get(data['chat_id'])
+                chat = Chat.objects.get(id=data['chat_id'])
                 chat.updated_time = timezone.now()
                 chat.save()
                 if message:
