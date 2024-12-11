@@ -107,8 +107,8 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         validated_data["sender"] = self.context["request"].user
         uploaded_file = validated_data.get("file")
         chat = Chat.objects.get(id=chat_id)
-        chat.save()
         chat.updated_time = timezone.now()
+        chat.save()
         if uploaded_file:
             file_extension = os.path.splitext(uploaded_file.name)[-1].lower()
             if file_extension in [".jpg", ".jpeg", ".png", ".gif"]:

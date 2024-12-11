@@ -5,10 +5,10 @@ import jwt
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.conf import settings
+from django.utils import timezone
 
 from accounts.models import User
 from chats.models import Chat, Message
-from chats.serializers import MessageSerializer
 
 
 class BaseConsumer(WebsocketConsumer):
@@ -44,6 +44,9 @@ class BaseConsumer(WebsocketConsumer):
                     content=data["message"],
                     type="txt",
                 )
+                chat = Chat.objects.get(data['chat_id'])
+                chat.updated_time = timezone.now()
+                chat.save()
                 if message:
                     for recipient in Chat.objects.get(id=data["chat_id"]).participants.all():
                         if recipient.id is not self.user.id:
