@@ -52,6 +52,8 @@ class BaseConsumer(WebsocketConsumer):
                 {
                     "category": "message",
                     "type": message.type,
+                    "id": message.id,
+                    "chat_id": message.chat.id,
                     "content": message.content,
                     "sender": message.sender.id,
                     "timestamp": str(message.timestamp),
