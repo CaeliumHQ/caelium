@@ -20,7 +20,7 @@ DEBUG = bool(os.environ["env"] == "dev")
 
 AUTH_USER_MODEL = "accounts.User"
 
-ALLOWED_HOSTS = ["api.caelium.co", "192.168.43.157", "127.0.0.1", "localhost", f"{os.environ['DJANGO_HOST']}"]
+ALLOWED_HOSTS = ["api.caelium.co", "192.168.43.157", "127.0.0.1", "localhost"]
 
 CORS_ALLOW_ALL_ORIGINS = True
 

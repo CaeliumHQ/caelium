@@ -1,4 +1,5 @@
 import json
+import os
 
 import jwt
 from asgiref.sync import async_to_sync
@@ -7,6 +8,7 @@ from django.conf import settings
 
 from accounts.models import User
 from chats.models import Chat, Message
+from chats.serializers import MessageSerializer
 
 
 class BaseConsumer(WebsocketConsumer):
@@ -22,8 +24,6 @@ class BaseConsumer(WebsocketConsumer):
             user_id = decoded_token["user_id"]
             self.user = User.objects.get(id=user_id)
             self.accept()
-
-            # Add the user to a group named after their user ID
             async_to_sync(self.channel_layer.group_add)(f"user_{user_id}", self.channel_name)
 
             self.send(text_data=json.dumps({"message": f"Welcome to Caelium, {self.user.username}!"}))
@@ -31,32 +31,49 @@ class BaseConsumer(WebsocketConsumer):
             self.close()
 
     def disconnect(self, close_code):
-        # Remove the user from their group on disconnect
         async_to_sync(self.channel_layer.group_discard)(f"user_{self.user.id}", self.channel_name)
 
     def receive(self, text_data):
-        data = json.loads(text_data)
-        message = Message.objects.create(chat_id=data["chat_id"], sender=self.user, content=data["message"], type="txt")
-        if message:
-            for recipient in Chat.objects.get(id=data["chat_id"]).participants.all():
-                if recipient.id is not self.user.id:
-                    async_to_sync(self.channel_layer.group_send)(
-                        f"user_{recipient.id}",
-                        {"type": "chat_message", "message": message},
-                    )
+        try:
+            data = json.loads(text_data)
+            if data["category"] == "text_message":
+                message = Message.objects.create(
+                    chat_id=data["chat_id"],
+                    sender=self.user,
+                    content=data["message"],
+                    type="txt",
+                )
+                if message:
+                    for recipient in Chat.objects.get(id=data["chat_id"]).participants.all():
+                        if recipient.id is not self.user.id:
+                            async_to_sync(self.channel_layer.group_send)(
+                                f"user_{recipient.id}",
+                                {"type": "new_message", "message": message},
+                            )
 
-    def chat_message(self, event):
+            elif data["category"] == "file_message":
+                message = Message.objects.get(id=data["message_id"])
+                for recipient in Chat.objects.get(id=data["chat_id"]).participants.all():
+                    if recipient.id is not self.user.id:
+                        async_to_sync(self.channel_layer.group_send)(
+                            f"user_{recipient.id}", {"type": "new_message", "message": message}
+                        )
+        except (json.JSONDecodeError, Message.DoesNotExist, Chat.DoesNotExist, KeyError) as e:
+            print(" Error:", e)
+
+    def new_message(self, event):
         message = event["message"]
         self.send(
             text_data=json.dumps(
                 {
-                    "category": "message",
+                    "category": "new_message",
                     "type": message.type,
                     "id": message.id,
                     "chat_id": message.chat.id,
                     "content": message.content,
                     "sender": message.sender.id,
                     "timestamp": str(message.timestamp),
+                    "file": f"{os.environ['SERVER_HOST']}{message.file.url}" if message.file else None,
                 }
             )
         )
