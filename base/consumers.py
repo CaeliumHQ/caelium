@@ -44,7 +44,7 @@ class BaseConsumer(WebsocketConsumer):
                     content=data["message"],
                     type="txt",
                 )
-                chat = Chat.objects.get(id=data['chat_id'])
+                chat = Chat.objects.get(id=data["chat_id"])
                 chat.updated_time = timezone.now()
                 chat.save()
                 if message:
@@ -61,6 +61,13 @@ class BaseConsumer(WebsocketConsumer):
                     if recipient.id is not self.user.id:
                         async_to_sync(self.channel_layer.group_send)(
                             f"user_{recipient.id}", {"type": "new_message", "message": message}
+                        )
+            elif data["category"] == "typing":
+                chat = Chat.objects.get(id=data["chat_id"])
+                for recipient in chat.participants.all():
+                    if recipient.id is not self.user.id:
+                        async_to_sync(self.channel_layer.group_send)(
+                            f"user_{recipient.id}", {"type": "typing", "data": data}
                         )
         except (json.JSONDecodeError, Message.DoesNotExist, Chat.DoesNotExist, KeyError) as e:
             print(" Error:", e)
@@ -81,3 +88,6 @@ class BaseConsumer(WebsocketConsumer):
                 }
             )
         )
+
+    def typing(self, event):
+        self.send(text_data=json.dumps(event["data"]))
