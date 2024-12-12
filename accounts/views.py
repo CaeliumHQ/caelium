@@ -2,12 +2,9 @@ import os
 
 import jwt
 import requests
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
-from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.generics import RetrieveAPIView, RetrieveUpdateAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from base.utils import log_admin
 from chats.models import Chat, Message
 
 from .models import FCMToken, GoogleToken, User
@@ -134,17 +132,7 @@ class GoogleLogin(APIView):
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
-
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "admin_group",
-            {
-                "type": "log_entry",
-                "message": f"Logged in user: {user.name}",
-                "timestamp": timezone.now().isoformat(),
-            },
-        )
-
+        log_admin(f"Logged in user: {user.name}")
         return Response(
             {
                 "access": access_token,
