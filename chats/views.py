@@ -38,6 +38,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     queryset = Message.objects.all()
     pagination_class = MessagePagination
+    permission_classes = [IsAuthenticated] 
 
     def get_serializer_class(self):
         if self.action == "create":

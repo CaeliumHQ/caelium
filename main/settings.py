@@ -22,7 +22,9 @@ AUTH_USER_MODEL = "accounts.User"
 
 ALLOWED_HOSTS = ["api.caelium.co", "192.168.43.157", "127.0.0.1", "localhost"]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "https://caelium.co",
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://api.caelium.co",
@@ -178,5 +180,3 @@ SIMPLE_JWT = {
 
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = True
