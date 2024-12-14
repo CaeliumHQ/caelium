@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from accounts.models import User
 from accounts.serializers import UserSerializer
+from base.utils import log_admin
 
 from .models import Chat, Message
 
@@ -123,17 +124,9 @@ class MessageCreateSerializer(serializers.ModelSerializer):
             validated_data["type"] = "txt"
 
         message = super().create(validated_data)
-
-        # Send notification to admin through websocket
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "admin_group",
-            {
-                "type": "log_entry",
-                "message": f"Message from {message.sender.name} to "
-                f"{message.chat.participants.exclude(id=message.sender.id).first().name}: '{message.content}'",
-                "timestamp": message.timestamp.isoformat(),
-            },
+        log_admin(
+            f"Message from {message.sender.name} to "
+            f"{message.chat.participants.exclude(id=message.sender.id).first().name}: '{message.content}'"
         )
 
         return message
