@@ -1,4 +1,6 @@
+import time
 from rest_framework import filters, status, viewsets
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -7,6 +9,12 @@ from accounts.serializers import UserSerializer
 
 from .models import Chat, Message
 from .serializers import ChatSerializer, MessageCreateSerializer, MessageSerializer
+
+
+class MessagePagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = "page_size"
+    max_page_size = 100
 
 
 class ChatViewSet(viewsets.ModelViewSet):
@@ -30,6 +38,7 @@ class ChatViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     queryset = Message.objects.all()
+    pagination_class = MessagePagination
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -38,8 +47,9 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         chat_id = self.kwargs.get("chat_id")
-        if Chat.objects.filter(id=chat_id, participants=self.request.user):
-            return Message.objects.filter(chat_id=chat_id)
+        if Chat.objects.filter(id=chat_id, participants=self.request.user).exists():
+            return Message.objects.filter(chat_id=chat_id).order_by("-id")
+        return Message.objects.none()
 
 
 class ChatUsers(viewsets.ModelViewSet):
