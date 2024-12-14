@@ -22,9 +22,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 ALLOWED_HOSTS = ["api.caelium.co", "192.168.43.157", "127.0.0.1", "localhost"]
 
-CORS_ALLOWED_ORIGINS = [
-    "https://caelium.co",
-]
+CORS_ALLOW_ALL_ORIGINS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "https://api.caelium.co",
