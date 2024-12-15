@@ -1,7 +1,5 @@
 import os
 
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import serializers
