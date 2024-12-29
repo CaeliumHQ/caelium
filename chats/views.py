@@ -1,4 +1,5 @@
 from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -7,7 +8,7 @@ from accounts.models import User
 from accounts.serializers import UserSerializer
 
 from .models import Chat, Message
-from .serializers import ChatSerializer, MessageCreateSerializer, MessageSerializer
+from .serializers import ChatSerializer, GroupChatSerializer, MessageCreateSerializer, MessageSerializer
 
 
 class MessagePagination(PageNumberPagination):
@@ -33,12 +34,20 @@ class ChatViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Chat.objects.filter(participants=self.request.user).order_by("-updated_time")
 
+    @action(detail=False, methods=["post"])
+    def create_group(self, request):
+        serializer = GroupChatSerializer(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            chat = serializer.save()
+            return Response(ChatSerializer(chat, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     queryset = Message.objects.all()
     pagination_class = MessagePagination
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == "create":

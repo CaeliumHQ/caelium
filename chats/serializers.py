@@ -22,6 +22,8 @@ class ChatSerializer(serializers.ModelSerializer):
             "other_participant",
             "last_message_content",
             "updated_time",
+            "is_group",
+            "name",
         )
 
     def get_other_participant(self, obj):
@@ -53,6 +55,28 @@ class ChatSerializer(serializers.ModelSerializer):
             return existing_chats.first()
         chat = Chat.objects.create()
         chat.participants.add(current_user, participant)
+        return chat
+
+
+class GroupChatSerializer(serializers.ModelSerializer):
+    participants = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all())
+    name = serializers.CharField(required=True)
+
+    class Meta:
+        model = Chat
+        fields = ("id", "name", "participants", "updated_time")
+
+    def validate_participants(self, value):
+        if len(value) < 2:  # minimum 3 participants for group chat
+            raise serializers.ValidationError("Group chat requires at least 3 participants")
+        current_user = self.context["request"].user
+        if current_user not in value:
+            value.append(current_user)
+        return value
+
+    def create(self, validated_data):
+        chat = Chat.objects.create(name=validated_data["name"], is_group=True)
+        chat.participants.set(validated_data["participants"])
         return chat
 
 

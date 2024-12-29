@@ -9,6 +9,7 @@ class Chat(models.Model):
     name = models.CharField(max_length=30, null=True, blank=True)
     participants = models.ManyToManyField("accounts.User")
     updated_time = models.DateTimeField(auto_now=True)
+    is_group = models.BooleanField(default=False)
 
     def __str__(self):
         participant_names = list(self.participants.values_list("name", flat=True))
