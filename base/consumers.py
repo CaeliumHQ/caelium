@@ -63,7 +63,7 @@ class BaseConsumer(WebsocketConsumer):
                         )
             elif data["category"] == "typing":
                 chat = Chat.objects.get(id=data["chat_id"])
-                data['sender'] = self.user.id
+                data["sender"] = self.user.id
                 for recipient in chat.participants.all():
                     if recipient.id is not self.user.id:
                         async_to_sync(self.channel_layer.group_send)(
@@ -80,7 +80,7 @@ class BaseConsumer(WebsocketConsumer):
                     "category": "new_message",
                     "type": message.type,
                     "id": message.id,
-                    "chat_id": message.chat.id,
+                    "chat": message.chat.id,
                     "content": message.content,
                     "sender": message.sender.id,
                     "timestamp": str(message.timestamp),

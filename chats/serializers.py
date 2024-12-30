@@ -75,9 +75,6 @@ class GroupChatSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender = UserSerializer()
-    chat = ChatSerializer()
-    side = serializers.SerializerMethodField()
     size = serializers.SerializerMethodField()
     extension = serializers.SerializerMethodField()
     file_name = serializers.SerializerMethodField()
@@ -86,11 +83,6 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = "__all__"
 
-    def get_side(self, obj):
-        current_user = self.context["request"].user
-        if obj.sender == current_user:
-            return "right"
-        return "left"
 
     def get_size(self, obj):
         if obj.file:
