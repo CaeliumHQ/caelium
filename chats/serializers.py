@@ -12,7 +12,6 @@ from .models import Chat, Message
 
 
 class ChatSerializer(serializers.ModelSerializer):
-    other_participant = serializers.SerializerMethodField()
     last_message_content = serializers.SerializerMethodField()
     participants = UserSerializer(many=True)
 
@@ -20,7 +19,6 @@ class ChatSerializer(serializers.ModelSerializer):
         model = Chat
         fields = (
             "id",
-            "other_participant",
             "last_message_content",
             "updated_time",
             "is_group",
@@ -28,13 +26,6 @@ class ChatSerializer(serializers.ModelSerializer):
             "participants",
             "group_icon",
         )
-
-    def get_other_participant(self, obj):
-        user = self.context["request"].user
-        participants = obj.participants.exclude(id=user.id)
-        if participants.exists():
-            return UserSerializer(participants.first(), context=self.context).data
-        return None
 
     def get_last_message_content(self, obj):
         last_message = obj.message_set.last()

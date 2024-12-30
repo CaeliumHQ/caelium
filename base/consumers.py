@@ -49,11 +49,10 @@ class BaseConsumer(WebsocketConsumer):
                 chat.save()
                 if message:
                     for recipient in Chat.objects.get(id=data["chat_id"]).participants.all():
-                        if recipient.id is not self.user.id:
-                            async_to_sync(self.channel_layer.group_send)(
-                                f"user_{recipient.id}",
-                                {"type": "new_message", "message": message},
-                            )
+                        async_to_sync(self.channel_layer.group_send)(
+                            f"user_{recipient.id}",
+                            {"type": "new_message", "message": message},
+                        )
 
             elif data["category"] == "file_message":
                 message = Message.objects.get(id=data["message_id"])
@@ -64,6 +63,7 @@ class BaseConsumer(WebsocketConsumer):
                         )
             elif data["category"] == "typing":
                 chat = Chat.objects.get(id=data["chat_id"])
+                data['sender'] = self.user.id
                 for recipient in chat.participants.all():
                     if recipient.id is not self.user.id:
                         async_to_sync(self.channel_layer.group_send)(
