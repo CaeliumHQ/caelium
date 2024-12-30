@@ -14,6 +14,7 @@ from .models import Chat, Message
 class ChatSerializer(serializers.ModelSerializer):
     other_participant = serializers.SerializerMethodField()
     last_message_content = serializers.SerializerMethodField()
+    participants = UserSerializer(many=True)
 
     class Meta:
         model = Chat
@@ -24,6 +25,8 @@ class ChatSerializer(serializers.ModelSerializer):
             "updated_time",
             "is_group",
             "name",
+            "participants",
+            "group_icon",
         )
 
     def get_other_participant(self, obj):
