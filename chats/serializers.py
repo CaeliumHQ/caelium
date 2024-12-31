@@ -12,14 +12,14 @@ from .models import Chat, Message
 
 
 class ChatSerializer(serializers.ModelSerializer):
-    last_message_content = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
     participants = UserSerializer(many=True)
 
     class Meta:
         model = Chat
         fields = (
             "id",
-            "last_message_content",
+            "last_message",
             "updated_time",
             "is_group",
             "name",
@@ -27,12 +27,10 @@ class ChatSerializer(serializers.ModelSerializer):
             "group_icon",
         )
 
-    def get_last_message_content(self, obj):
+    def get_last_message(self, obj):
         last_message = obj.message_set.last()
         if last_message:
-            if last_message.sender == self.context["request"].user:
-                return f"You: {last_message.content}"
-            return f"{last_message.sender.name}: {last_message.content}"
+            return LastMessageSerializer(last_message).data
         return None
 
     def create(self, validated_data):
@@ -50,6 +48,14 @@ class ChatSerializer(serializers.ModelSerializer):
         chat = Chat.objects.create()
         chat.participants.add(current_user, participant)
         return chat
+
+
+class LastMessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer()
+
+    class Meta:
+        model = Message
+        fields = ("content", "timestamp", "sender", "type")
 
 
 class GroupChatSerializer(serializers.ModelSerializer):
@@ -82,7 +88,6 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = "__all__"
-
 
     def get_size(self, obj):
         if obj.file:
