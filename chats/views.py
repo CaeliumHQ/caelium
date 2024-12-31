@@ -34,22 +34,46 @@ class ChatViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Chat.objects.filter(participants=self.request.user).order_by("-updated_time")
     
-    @action(detail=True, methods=["delete"])
-    def delete_chat(self, request, *args, **kwargs):
+    def destroy(self, request, *args, **kwargs):
         chat = self.get_object()
-        if chat.is_group and chat.creator == request.user:
-            chat.delete()
+        if chat.is_group:
+            if chat.creator == request.user:
+                chat.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(
+                {"error": "Only group creator can delete group chats"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        else:
+            # For non-group chats, just remove the user from participants
+            chat.participants.remove(request.user)
+            if chat.participants.count() == 0:
+                chat.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response({"error": "You are not authorized to delete this chat"}, status=status.HTTP_403_FORBIDDEN)
+
+    @action(detail=True, methods=['get'])
+    def messages(self, request, pk=None):
+        chat = self.get_object()
+        if request.user not in chat.participants.all():
+            return Response(
+                {"error": "You are not a participant of this chat"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        messages = chat.message_set.all().order_by('-timestamp')
+        page = self.paginate_queryset(messages)
+        serializer = MessageSerializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def users(self, request):
-        # Get users who are not in any chat with the current user
         current_user = request.user
         existing_chat_users = User.objects.filter(
-            chat__participants=current_user
+            chat__participants=current_user,
+            is_active=True  # Only get active users
         ).distinct()
-        new_users = User.objects.exclude(
+        new_users = User.objects.filter(
+            is_active=True  # Only get active users
+        ).exclude(
             id__in=existing_chat_users
         ).exclude(id=current_user.id)
         
@@ -70,13 +94,23 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         chat_id = self.kwargs.get("chat_id")
-        if Chat.objects.filter(id=chat_id, participants=self.request.user).exists():
-            return Message.objects.filter(chat_id=chat_id).order_by("-id")
-        return Message.objects.none()
+        # Check if user is participant of the chat
+        chat = Chat.objects.filter(
+            id=chat_id, 
+            participants=self.request.user
+        ).first()
+        if not chat:
+            return Message.objects.none()
+        return Message.objects.filter(chat_id=chat_id).order_by("-timestamp")
 
 
 class ChatUsers(viewsets.ModelViewSet):
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return User.objects.all().exclude(email=self.request.user.email)
+        return User.objects.filter(
+            is_active=True
+        ).exclude(
+            id=self.request.user.id
+        ).order_by('name')

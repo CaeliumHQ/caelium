@@ -32,6 +32,7 @@ class ChatSerializer(serializers.ModelSerializer):
             "participants",
             "group_icon",
             "participant_ids",
+            "creator"
         )
 
     def get_last_message(self, obj):
@@ -81,7 +82,8 @@ class ChatSerializer(serializers.ModelSerializer):
         # Create new chat
         chat = Chat.objects.create(
             is_group=is_group,
-            name=name if is_group else ""
+            name=name if is_group else "",
+            creator=current_user if is_group else None
         )
         chat.participants.add(current_user)
         for participant in participant_users:
