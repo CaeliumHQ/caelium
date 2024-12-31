@@ -45,10 +45,7 @@ class ChatViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         else:
-            # For non-group chats, just remove the user from participants
-            chat.participants.remove(request.user)
-            if chat.participants.count() == 0:
-                chat.delete()
+            chat.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['get'])
