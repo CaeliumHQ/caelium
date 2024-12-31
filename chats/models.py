@@ -7,10 +7,11 @@ from accounts.models import User
 
 class Chat(models.Model):
     name = models.CharField(max_length=30, null=True, blank=True)
-    participants = models.ManyToManyField("accounts.User")
+    participants = models.ManyToManyField("accounts.User", related_name="chats")
     updated_time = models.DateTimeField(auto_now=True)
     is_group = models.BooleanField(default=False)
     group_icon = models.ImageField(null=True, blank=True, upload_to="group_icons")
+    creator = models.ForeignKey("accounts.User", on_delete=models.CASCADE, null=True, blank=True, related_name="created_chats")
 
     def __str__(self):
         participant_names = list(self.participants.values_list("name", flat=True))

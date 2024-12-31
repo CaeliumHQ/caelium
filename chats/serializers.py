@@ -13,7 +13,12 @@ from .models import Chat, Message
 
 class ChatSerializer(serializers.ModelSerializer):
     last_message = serializers.SerializerMethodField()
-    participants = UserSerializer(many=True)
+    participants = UserSerializer(many=True, read_only=True)
+    participant_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False
+    )
 
     class Meta:
         model = Chat
@@ -25,6 +30,7 @@ class ChatSerializer(serializers.ModelSerializer):
             "name",
             "participants",
             "group_icon",
+            "participant_ids",
         )
 
     def get_last_message(self, obj):
@@ -35,18 +41,32 @@ class ChatSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         current_user = self.context["request"].user
-        participant_id = self.context["request"].data.get("participant")
-        if not participant_id:
-            raise serializers.ValidationError("Participant ID is required")
+        participant_ids = self.context["request"].data.get("participant_ids", [])
+        
+        if not participant_ids:
+            raise serializers.ValidationError("At least one participant ID is required")
+        
+        # Convert single ID to list if necessary
+        if isinstance(participant_ids, (int, str)):
+            participant_ids = [int(participant_ids)]
+            
         try:
-            participant = User.objects.get(pk=participant_id)
+            participant_users = [User.objects.get(pk=p_id) for p_id in participant_ids]
         except User.DoesNotExist as exc:
-            raise serializers.ValidationError("Participant does not exist") from exc
-        existing_chats = Chat.objects.filter(participants=current_user).filter(participants=participant_id)
-        if existing_chats.exists():
-            return existing_chats.first()
+            raise serializers.ValidationError("One or more participants do not exist") from exc
+            
+        # Check for existing chat with these participants
+        for participant in participant_users:
+            existing_chats = Chat.objects.filter(participants=current_user).filter(participants=participant)
+            if existing_chats.exists() and len(participant_ids) == 1:
+                return existing_chats.first()
+        
+        # Create new chat
         chat = Chat.objects.create()
-        chat.participants.add(current_user, participant)
+        chat.participants.add(current_user)
+        for participant in participant_users:
+            chat.participants.add(participant)
+            
         return chat
 
 

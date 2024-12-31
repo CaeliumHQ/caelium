@@ -33,6 +33,14 @@ class ChatViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Chat.objects.filter(participants=self.request.user).order_by("-updated_time")
+    
+    @action(detail=True, methods=["delete"])
+    def delete_chat(self, request, *args, **kwargs):
+        chat = self.get_object()
+        if chat.is_group and chat.creator == request.user:
+            chat.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"error": "You are not authorized to delete this chat"}, status=status.HTTP_403_FORBIDDEN)
 
     @action(detail=False, methods=["post"])
     def create_group(self, request):
