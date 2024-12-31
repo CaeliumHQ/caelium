@@ -19,6 +19,7 @@ class ChatSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    name = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Chat
@@ -35,16 +36,31 @@ class ChatSerializer(serializers.ModelSerializer):
 
     def get_last_message(self, obj):
         last_message = obj.message_set.last()
-        if last_message:
+        if (last_message):
             return LastMessageSerializer(last_message).data
         return None
+
+    def validate(self, data):
+        participant_ids = self.context["request"].data.get("participant_ids", [])
+        is_group = self.context["request"].data.get("is_group", False)
+        name = self.context["request"].data.get("name", "")
+
+        if not participant_ids:
+            raise serializers.ValidationError("At least one participant ID is required")
+
+        if is_group:
+            if len(participant_ids) < 2:
+                raise serializers.ValidationError("Group chat requires at least 3 participants")
+            if not name:
+                raise serializers.ValidationError("Group name is required")
+        
+        return data
 
     def create(self, validated_data):
         current_user = self.context["request"].user
         participant_ids = self.context["request"].data.get("participant_ids", [])
-        
-        if not participant_ids:
-            raise serializers.ValidationError("At least one participant ID is required")
+        is_group = self.context["request"].data.get("is_group", False)
+        name = self.context["request"].data.get("name", "")
         
         # Convert single ID to list if necessary
         if isinstance(participant_ids, (int, str)):
@@ -55,14 +71,18 @@ class ChatSerializer(serializers.ModelSerializer):
         except User.DoesNotExist as exc:
             raise serializers.ValidationError("One or more participants do not exist") from exc
             
-        # Check for existing chat with these participants
-        for participant in participant_users:
-            existing_chats = Chat.objects.filter(participants=current_user).filter(participants=participant)
-            if existing_chats.exists() and len(participant_ids) == 1:
-                return existing_chats.first()
+        # For non-group chats, check for existing chat
+        if not is_group:
+            for participant in participant_users:
+                existing_chats = Chat.objects.filter(is_group=False).filter(participants=current_user).filter(participants=participant)
+                if existing_chats.exists() and len(participant_ids) == 1:
+                    return existing_chats.first()
         
         # Create new chat
-        chat = Chat.objects.create()
+        chat = Chat.objects.create(
+            is_group=is_group,
+            name=name if is_group else ""
+        )
         chat.participants.add(current_user)
         for participant in participant_users:
             chat.participants.add(participant)
@@ -76,28 +96,6 @@ class LastMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ("content", "timestamp", "sender", "type")
-
-
-class GroupChatSerializer(serializers.ModelSerializer):
-    participants = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all())
-    name = serializers.CharField(required=True)
-
-    class Meta:
-        model = Chat
-        fields = ("id", "name", "participants", "updated_time")
-
-    def validate_participants(self, value):
-        if len(value) < 2:  # minimum 3 participants for group chat
-            raise serializers.ValidationError("Group chat requires at least 3 participants")
-        current_user = self.context["request"].user
-        if current_user not in value:
-            value.append(current_user)
-        return value
-
-    def create(self, validated_data):
-        chat = Chat.objects.create(name=validated_data["name"], is_group=True)
-        chat.participants.set(validated_data["participants"])
-        return chat
 
 
 class MessageSerializer(serializers.ModelSerializer):

@@ -8,7 +8,7 @@ from accounts.models import User
 from accounts.serializers import UserSerializer
 
 from .models import Chat, Message
-from .serializers import ChatSerializer, GroupChatSerializer, MessageCreateSerializer, MessageSerializer
+from .serializers import ChatSerializer, MessageCreateSerializer, MessageSerializer
 
 
 class MessagePagination(PageNumberPagination):
@@ -42,13 +42,19 @@ class ChatViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response({"error": "You are not authorized to delete this chat"}, status=status.HTTP_403_FORBIDDEN)
 
-    @action(detail=False, methods=["post"])
-    def create_group(self, request):
-        serializer = GroupChatSerializer(data=request.data, context={"request": request})
-        if serializer.is_valid():
-            chat = serializer.save()
-            return Response(ChatSerializer(chat, context={"request": request}).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=False, methods=['get'])
+    def users(self, request):
+        # Get users who are not in any chat with the current user
+        current_user = request.user
+        existing_chat_users = User.objects.filter(
+            chat__participants=current_user
+        ).distinct()
+        new_users = User.objects.exclude(
+            id__in=existing_chat_users
+        ).exclude(id=current_user.id)
+        
+        serializer = UserSerializer(new_users, many=True)
+        return Response(serializer.data)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
