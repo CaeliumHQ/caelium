@@ -5,7 +5,7 @@ from .models import FCMToken, User
 class UserSerializer(ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'avatar', 'location', 'gender', 'birthdate']
+        fields = ['id', 'email', 'name', 'avatar', 'location', 'gender', 'birthdate', 'last_seen']
 
 
 class FCMTokenSerializer(ModelSerializer):
