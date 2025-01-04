@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
-
+from django.utils import timezone
 
 class UserManager(BaseUserManager):
 
@@ -55,6 +55,8 @@ class User(AbstractUser):
     bio = models.TextField(null=True, blank=True)
     birthdate = models.DateField(null=True, blank=True)
     password = models.CharField(null=True, blank=True, max_length=255)
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(default=timezone.now, null=True, blank=True)
     objects = UserManager()
 
     USERNAME_FIELD = "username"  # Use username as the login field for Django
@@ -62,6 +64,11 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.email})"
+
+    def update_last_seen(self):
+        self.last_seen = timezone.now()
+        self.is_online = False
+        self.save()
 
 
 class GoogleToken(models.Model):
