@@ -70,6 +70,7 @@ class Call(models.Model):
         default="ongoing",
     )
     initiator = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="initiated_calls")
+    active = models.BooleanField(default=True)
 
     def end_call(self):
         self.ended_at = timezone.now()

@@ -14,3 +14,13 @@ def log_admin(message):
             "timestamp": timezone.now().isoformat(),
         },
     )
+
+
+def socket_notify_user(user, event_type, payload):
+    async_to_sync(channel_layer.group_send)(
+        f"user_{user.id}",
+        {
+            "type": event_type,
+            **payload,
+        },
+    )
