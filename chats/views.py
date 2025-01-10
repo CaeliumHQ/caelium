@@ -9,7 +9,7 @@ from accounts.models import User
 from accounts.serializers import UserSerializer
 from base.utils import socket_notify_user
 
-from .models import Call, Chat, Message
+from .models import Call, CallParticipant, Chat, Message
 from .serializers import ChatSerializer, MessageCreateSerializer, MessageSerializer
 
 
@@ -51,7 +51,7 @@ class ChatViewSet(viewsets.ModelViewSet):
     def messages(self, request, pk=None):
         chat = self.get_object()
         if request.user not in chat.participants.all():
-            return Response({"error": "You are not a participant of this chat"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "You are not a participant of this chat",}, status=status.HTTP_403_FORBIDDEN)
         messages = chat.message_set.all().order_by("-timestamp")
         page = self.paginate_queryset(messages)
         serializer = MessageSerializer(page, many=True)
@@ -129,4 +129,33 @@ class InitiateCallAPI(APIView):
                     "initiator": request.user.username,
                 },
             )
-        return Response({"message": "Call initiated successfully", "call_id": call.id})
+        return Response({"id": call.id, "message": "Call initiated successfully"})
+
+
+class JoinCallAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        call_id = request.data.get("call_id")
+        call = Call.objects.get(id=call_id)
+
+        # Ensure the user is a participant in the chat
+        if not call.chat.participants.filter(id=request.user.id).exists():
+            return Response({"error": "You are not a participant in this chat"}, status=403)
+
+        # Update CallParticipant status
+        participant = CallParticipant.objects.get_or_create(call=call, user=request.user)[0]
+        participant.status = "joined"
+        participant.save()
+
+        # Notify others that this participant has joined
+        for participant in call.chat.participants.all():
+            socket_notify_user(
+                participant,
+                "user_joined",
+                {
+                    "user": request.user.username,
+                },
+            )
+
+        return Response({"message": "Successfully joined the call"})
