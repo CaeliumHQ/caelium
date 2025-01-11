@@ -14,11 +14,7 @@ from .models import Chat, Message
 class ChatSerializer(serializers.ModelSerializer):
     last_message = serializers.SerializerMethodField()
     participants = UserSerializer(many=True, read_only=True)
-    participant_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        write_only=True,
-        required=False
-    )
+    participant_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     name = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
@@ -32,12 +28,12 @@ class ChatSerializer(serializers.ModelSerializer):
             "participants",
             "group_icon",
             "participant_ids",
-            "creator"
+            "creator",
         )
 
     def get_last_message(self, obj):
         last_message = obj.message_set.last()
-        if (last_message):
+        if last_message:
             return LastMessageSerializer(last_message).data
         return None
 
@@ -54,7 +50,7 @@ class ChatSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Group chat requires at least 3 participants")
             if not name:
                 raise serializers.ValidationError("Group name is required")
-        
+
         return data
 
     def create(self, validated_data):
@@ -62,33 +58,33 @@ class ChatSerializer(serializers.ModelSerializer):
         participant_ids = self.context["request"].data.get("participant_ids", [])
         is_group = self.context["request"].data.get("is_group", False)
         name = self.context["request"].data.get("name", "")
-        
+
         # Convert single ID to list if necessary
         if isinstance(participant_ids, (int, str)):
             participant_ids = [int(participant_ids)]
-            
+
         try:
             participant_users = [User.objects.get(pk=p_id) for p_id in participant_ids]
         except User.DoesNotExist as exc:
             raise serializers.ValidationError("One or more participants do not exist") from exc
-            
+
         # For non-group chats, check for existing chat
         if not is_group:
             for participant in participant_users:
-                existing_chats = Chat.objects.filter(is_group=False).filter(participants=current_user).filter(participants=participant)
+                existing_chats = (
+                    Chat.objects.filter(is_group=False).filter(participants=current_user).filter(participants=participant)
+                )
                 if existing_chats.exists() and len(participant_ids) == 1:
                     return existing_chats.first()
-        
+
         # Create new chat
         chat = Chat.objects.create(
-            is_group=is_group,
-            name=name if is_group else "",
-            creator=current_user if is_group else None
+            is_group=is_group, name=name if is_group else "", creator=current_user if is_group else None
         )
         chat.participants.add(current_user)
         for participant in participant_users:
             chat.participants.add(participant)
-            
+
         return chat
 
 
