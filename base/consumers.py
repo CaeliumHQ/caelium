@@ -8,6 +8,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from accounts.models import User
+from accounts.serializers import UserSerializer
 from chats.models import Chat, Message
 
 
@@ -37,7 +38,6 @@ class BaseConsumer(WebsocketConsumer):
             async_to_sync(self.channel_layer.group_add)(f"user_{user_id}", self.channel_name)
             self.send(text_data=json.dumps({"message": f"Welcome to Caelium, {self.user.username}!"}))
             online_users = self.get_online_users()
-            print(f"User {self.user.username} connected")
             self.send(
                 text_data=json.dumps(
                     {
@@ -58,7 +58,6 @@ class BaseConsumer(WebsocketConsumer):
 
     def disconnect(self, close_code):
         if self.user:
-            print(f"User {self.user.username} disconnected")
             if self.user.id in self.active_connections:
                 self.active_connections[self.user.id].discard(self.channel_name)
                 if not self.active_connections[self.user.id]:
@@ -102,8 +101,20 @@ class BaseConsumer(WebsocketConsumer):
                         async_to_sync(self.channel_layer.group_send)(
                             f"user_{recipient.id}", {"type": "typing", "data": data}
                         )
+            elif data["category"] == "incoming_call":
+                chat = Chat.objects.get(id=data["chat_id"])
+                data["caller"] = UserSerializer(self.user).data
+                for recipient in chat.participants.all():
+                    if recipient.id != self.user.id:
+                        async_to_sync(self.channel_layer.group_send)(
+                            f"user_{recipient.id}", {"type": "incoming_call", "data": data}
+                        )
+
         except (json.JSONDecodeError, Message.DoesNotExist, Chat.DoesNotExist, KeyError) as e:
             print(" Error:", e)
+
+    def incoming_call(self, event):
+        self.send(text_data=json.dumps(event["data"]))
 
     def new_message(self, event):
         message = event["message"]
