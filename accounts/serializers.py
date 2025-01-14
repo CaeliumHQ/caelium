@@ -10,7 +10,7 @@ class UserSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "name", "avatar", "avatar_url", "location", "gender", "birthdate", "last_seen"]
+        fields = ["id", "email", "name", "avatar", "avatar_url", "location", "gender", "birthdate", "last_seen", "username"]
 
     def get_avatar_url(self, obj):
         if obj.avatar:

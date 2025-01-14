@@ -51,26 +51,32 @@ class ChatViewSet(viewsets.ModelViewSet):
     def messages(self, request, pk=None):
         chat = self.get_object()
         if request.user not in chat.participants.all():
-            return Response({"error": "You are not a participant of this chat",}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "You are not a participant of this chat"}, status=status.HTTP_403_FORBIDDEN)
         messages = chat.message_set.all().order_by("-timestamp")
         page = self.paginate_queryset(messages)
         serializer = MessageSerializer(page, many=True)
         return self.get_paginated_response(serializer.data)
 
-    @action(detail=False, methods=["get"])
-    def users(self, request):
-        current_user = request.user
-        existing_chat_users = User.objects.filter(
-            chat__participants=current_user, is_active=True  # Only get active users
-        ).distinct()
-        new_users = (
-            User.objects.filter(is_active=True)  # Only get active users
-            .exclude(id__in=existing_chat_users)
-            .exclude(id=current_user.id)
-        )
+    @action(detail=True, methods=["get"])
+    def media(self, request, pk=None):
+        chat = self.get_object()
+        if request.user not in chat.participants.all():
+            return Response({"error": "You are not a participant of this chat"}, status=status.HTTP_403_FORBIDDEN)
 
-        serializer = UserSerializer(new_users, many=True)
-        return Response(serializer.data)
+        # Get messages with media files grouped by type
+        media = {
+            "images": Message.objects.filter(chat=chat, type="img").order_by("-timestamp"),
+            "videos": Message.objects.filter(chat=chat, type="vid").order_by("-timestamp"),
+            "audios": Message.objects.filter(chat=chat, type="aud").order_by("-timestamp"),
+            "documents": Message.objects.filter(chat=chat, type="doc").order_by("-timestamp"),
+        }
+
+        response = {}
+        for media_type, queryset in media.items():
+            serializer = MessageSerializer(queryset, many=True)
+            response[media_type] = serializer.data
+
+        return Response(response)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -98,7 +104,12 @@ class ChatUsers(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return User.objects.filter(is_active=True).exclude(id=self.request.user.id).order_by("name")
+        return (
+            User.objects.filter(is_active=True)
+            .exclude(id=self.request.user.id)
+            .exclude(email="admin@jerit.in")
+            .order_by("name")
+        )
 
 
 class InitiateCallAPI(APIView):
