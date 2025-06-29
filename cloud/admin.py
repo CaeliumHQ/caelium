@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from cloud.models import Directory, File, FileTag, SharedItem, Tag
+from cloud.models import Directory, FileTag, SharedItem, Tag, CloudFile, MediaFile
 
 
 @admin.register(Directory)
@@ -15,18 +15,6 @@ class DirectoryAdmin(admin.ModelAdmin):
 
     get_path.short_description = "Path"
 
-
-@admin.register(File)
-class FileAdmin(admin.ModelAdmin):
-    list_display = ("name", "owner", "get_path", "size", "category")
-    list_filter = ("owner", "mime_type", "created_at")
-    search_fields = ("name", "owner__username", "mime_type")
-    readonly_fields = ("size",)
-
-    def get_path(self, obj):
-        return obj.path
-
-    get_path.short_description = "Path"
 
 
 @admin.register(SharedItem)
@@ -61,3 +49,7 @@ class FileTagAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("file", "tag")
+
+
+admin.site.register(CloudFile)
+admin.site.register(MediaFile)
