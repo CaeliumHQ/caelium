@@ -1,11 +1,12 @@
 from django.db import models
 
 from accounts.models import User
+from cloud.models import MediaFile
 
 
 class Post(models.Model):
-    image = models.TextField(max_length=1000)
-    caption = models.TextField(max_length=1000, blank=True)
+    media = models.ManyToManyField(MediaFile, related_name="posts")
+    caption = models.TextField(max_length=200, blank=True, null=True, help_text="Caption for the post")
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     tagged_users = models.ManyToManyField(
         User, related_name="tagged_posts", blank=True, help_text="Users tagged in this post"
@@ -14,12 +15,12 @@ class Post(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     allow_comments = models.BooleanField(default=True, help_text="Whether comments are allowed on this post")
 
-    def __str__(self):
-        return f"{self.id} - {self.owner.username} - {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
-
     def likes_count(self):
         """Return the number of likes for this post"""
         return self.likes.count()
+
+    def __str__(self):
+        return f"Post by {self.owner.username} at {self.created_at}"
 
 
 class Like(models.Model):

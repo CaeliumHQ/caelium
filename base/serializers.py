@@ -1,7 +1,12 @@
+import os
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import serializers
 
 from base.models import Comment, Like, Post, Task
+from cloud.models import CloudFile
 
 User = get_user_model()
 
@@ -30,11 +35,36 @@ class PostSerializer(serializers.ModelSerializer):
     comments = serializers.SerializerMethodField()
     time = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    file = serializers.ImageField(write_only=True, required=False)
+    caption = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    tagged_users = serializers.ListField(child=serializers.CharField(), write_only=True, required=False)
+    allow_comments = serializers.BooleanField(default=True)
+    content_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = ["id", "user", "content", "image", "likes", "comments", "time", "is_liked", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = [
+            "id",
+            "user",
+            "content",
+            "content_url",
+            "caption",
+            "likes",
+            "comments",
+            "time",
+            "is_liked",
+            "created_at",
+            "file",
+            "tagged_users",
+            "allow_comments",
+        ]
+        read_only_fields = ["id", "created_at", "content"]
+
+    def get_content_url(self, obj):
+        """Return the URL for the content file"""
+        if obj.content and obj.content.local_path:
+            return f"/media/{obj.content.local_path}"
+        return None
 
     def get_likes(self, obj):
         return obj.likes_count()
@@ -44,8 +74,6 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_time(self, obj):
         """Return time in a format similar to your frontend expectation"""
-        from django.utils import timezone
-
         now = timezone.now()
         diff = now - obj.created_at
 
@@ -67,8 +95,64 @@ class PostSerializer(serializers.ModelSerializer):
         return False
 
     def create(self, validated_data):
+        # Extract file and other data
+        uploaded_file = validated_data.pop("file", None)
+        tagged_user_ids = validated_data.pop("tagged_users", [])
+
+        if not uploaded_file:
+            raise serializers.ValidationError("File is required for creating a post")
+
+        # Validate file size (10MB limit)
+        max_size = 10 * 1024 * 1024  # 10MB in bytes
+        if uploaded_file.size > max_size:
+            raise serializers.ValidationError("File size cannot exceed 10MB")
+
+        # Create the post first
         validated_data["owner"] = self.context["request"].user
-        return super().create(validated_data)
+        post = super().create(validated_data)
+
+        # Create directory for this post
+        post_dir = f"posts/{post.id}"
+        full_post_dir = os.path.join(settings.MEDIA_ROOT, post_dir)
+        os.makedirs(full_post_dir, exist_ok=True)
+
+        # Save the file
+        filename = f"{uploaded_file.name}"
+        file_path = os.path.join(post_dir, filename)
+        full_file_path = os.path.join(settings.MEDIA_ROOT, file_path)
+
+        # Write the file to disk
+        with open(full_file_path, "wb+") as destination:
+            for chunk in uploaded_file.chunks():
+                destination.write(chunk)
+
+        # Create File model instance
+        file_instance = CloudFile.objects.create(
+            name=uploaded_file.name,
+            owner=post.owner,
+            parent=None,  # No parent for post files
+            size=uploaded_file.size,
+            mime_type=uploaded_file.content_type,
+            created_at=timezone.now(),
+            local_path=file_path,
+            tier="hot",  # Set tier as hot
+            category="post",  # Set category as post
+            upload_status="completed",
+        )
+
+        # Update the post with the file content
+        post.content = file_instance
+        post.save()
+
+        # Handle tagged users
+        if tagged_user_ids:
+            try:
+                tagged_users = User.objects.filter(id__in=tagged_user_ids)
+                post.tagged_users.set(tagged_users)
+            except (ValueError, User.DoesNotExist):
+                pass  # Ignore invalid user IDs
+
+        return post
 
 
 class LikeSerializer(serializers.ModelSerializer):
