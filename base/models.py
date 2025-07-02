@@ -5,7 +5,7 @@ from cloud.models import MediaFile
 
 
 class Post(models.Model):
-    media = models.ManyToManyField(MediaFile, related_name="posts")
+
     caption = models.TextField(max_length=200, blank=True, null=True, help_text="Caption for the post")
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     tagged_users = models.ManyToManyField(

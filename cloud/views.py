@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from cloud.google_drive import GoogleDriveStorage
-from cloud.models import Directory, File, Tag, FileTag
+from cloud.models import Directory, CloudFile, Tag, FileTag
 from cloud.serializers import BreadcrumbSerializer, DirectorySerializer, FileSerializer, TagSerializer
 from cloud.utils import check_type, extract_date_from_filename, get_directory_path
 
@@ -381,8 +381,8 @@ class FileDownloadView(APIView):
         """Handle GET request for file download with streaming"""
         try:
             # Get the file by UUID
-            file_obj = File.objects.get(id=pk, owner=request.user)
-        except File.DoesNotExist:
+            file_obj = CloudFile.objects.get(id=pk, owner=request.user)
+        except CloudFile.DoesNotExist:
             raise Http404("File not found")
 
         # Check if file content is available (either in Google Drive or local storage)
@@ -499,7 +499,7 @@ class FileUploadView(APIView):
 
             # Update file with Drive ID in a separate transaction
             with transaction.atomic():
-                file_obj = File.objects.get(id=file_id)
+                file_obj = CloudFile.objects.get(id=file_id)
                 file_obj.drive_file_id = drive_file["id"]
                 file_obj.upload_status = "completed"
                 # We no longer need to store the local path after successful upload
@@ -526,7 +526,7 @@ class FileUploadView(APIView):
             # Handle errors - update file status to reflect failure
             try:
                 with transaction.atomic():
-                    file_obj = File.objects.get(id=file_id)
+                    file_obj = CloudFile.objects.get(id=file_id)
                     file_obj.upload_status = "failed"
                     file_obj.local_path = temp_file_path  # Keep local path on failure
                     file_obj.save()
@@ -580,7 +580,7 @@ class FileUploadView(APIView):
 
                 # Create file record in database
                 with transaction.atomic():
-                    file_obj = File(
+                    file_obj = CloudFile(
                         name=uploaded_file.name,
                         owner=request.user,
                         parent=file_parent,
@@ -638,14 +638,14 @@ class GalleryListView(APIView):
             category_query |= Q(category__iexact=category)
 
         # Start building the queryset - filter by owner and categories
-        queryset = File.objects.filter(category_query, owner=request.user)
+        queryset = CloudFile.objects.filter(category_query, owner=request.user)
 
         # If no results found, try a more flexible query that checks if category contains these words
         if queryset.count() == 0:
             category_query = (
                 Q(category__icontains="picture") | Q(category__icontains="video") | Q(category__icontains="image")
             )
-            queryset = File.objects.filter(category_query, owner=request.user)
+            queryset = CloudFile.objects.filter(category_query, owner=request.user)
 
         # Filter by parent directory if specified
         if parent_id:
@@ -660,10 +660,10 @@ class GalleryListView(APIView):
         # If still no results found, return a more descriptive response
         if queryset.count() == 0:
             # Check if there are any files for this user at all
-            total_files = File.objects.filter(owner=request.user).count()
+            total_files = CloudFile.objects.filter(owner=request.user).count()
             if total_files > 0:
                 # Get a list of unique categories for debugging
-                categories = File.objects.filter(owner=request.user).values_list("category", flat=True).distinct()
+                categories = CloudFile.objects.filter(owner=request.user).values_list("category", flat=True).distinct()
                 return Response(
                     {
                         "message": "No media files found with the categories Pictures or Videos.",
@@ -709,7 +709,7 @@ class ExplorerView(APIView):
             try:
                 current_directory = Directory.objects.get(id=parent_id, owner=request.user)
                 directories = Directory.objects.filter(owner=request.user, parent=current_directory)
-                files = File.objects.filter(owner=request.user, parent=current_directory)
+                files = CloudFile.objects.filter(owner=request.user, parent=current_directory)
 
                 # Generate breadcrumbs for the current directory
                 breadcrumbs = self.get_breadcrumbs(current_directory)
@@ -718,7 +718,7 @@ class ExplorerView(APIView):
         else:
             # Get directories and files in root directory (parent=None)
             directories = Directory.objects.filter(owner=request.user, parent=None)
-            files = File.objects.filter(owner=request.user, parent=None)
+            files = CloudFile.objects.filter(owner=request.user, parent=None)
 
         # Serialize the data
         directory_serializer = DirectorySerializer(directories, many=True)
@@ -793,9 +793,9 @@ class TagViewSet(viewsets.ModelViewSet):
         files = []
         for fid in file_ids:
             try:
-                file = File.objects.get(id=fid, owner=request.user)
+                file = CloudFile.objects.get(id=fid, owner=request.user)
                 files.append(file)
-            except File.DoesNotExist:
+            except CloudFile.DoesNotExist:
                 return Response(
                     {"error": f"File with id {fid} not found or you don't have permission to tag this file"},
                     status=status.HTTP_404_NOT_FOUND
@@ -857,7 +857,7 @@ class TagViewSet(viewsets.ModelViewSet):
         
         for file_id in file_ids:
             try:
-                file = File.objects.get(id=file_id, owner=request.user)
+                file = CloudFile.objects.get(id=file_id, owner=request.user)
                 
                 # Check if this file is already tagged
                 file_tag, created = FileTag.objects.get_or_create(file=file, tag=tag)
@@ -867,7 +867,7 @@ class TagViewSet(viewsets.ModelViewSet):
                 else:
                     errors.append(f"File {file_id} is already tagged with this tag")
                     
-            except File.DoesNotExist:
+            except CloudFile.DoesNotExist:
                 errors.append(f"File {file_id} not found or you don't have permission to tag it")
         
         return Response({
@@ -902,7 +902,7 @@ class TagViewSet(viewsets.ModelViewSet):
         
         for file_id in file_ids:
             try:
-                file = File.objects.get(id=file_id, owner=request.user)
+                file = CloudFile.objects.get(id=file_id, owner=request.user)
                 
                 try:
                     # Find and delete the FileTag association
@@ -912,7 +912,7 @@ class TagViewSet(viewsets.ModelViewSet):
                 except FileTag.DoesNotExist:
                     errors.append(f"File {file_id} was not tagged with this tag")
                     
-            except File.DoesNotExist:
+            except CloudFile.DoesNotExist:
                 errors.append(f"File {file_id} not found or you don't have permission to modify its tags")
         
         return Response({

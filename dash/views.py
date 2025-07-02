@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from django.contrib.auth import authenticate
-from django.db.models import Q
 from django.utils import timezone
 from rest_framework import filters, permissions, status
 from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView
@@ -12,8 +11,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
 from chats.models import Chat, Message
-from cloud.models import File
-from cloud.serializers import FileSerializer
 from dash.serializers import DashboardUserSerializer
 
 
@@ -37,54 +34,14 @@ class LoginView(APIView):
 
 class FilePagination(PageNumberPagination):
     page_size = 20
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 100
 
 
 class UserPagination(PageNumberPagination):
     page_size = 10
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 50
-
-
-class CloudFileListView(ListCreateAPIView):
-    serializer_class = FileSerializer
-    permission_classes = (permissions.IsAdminUser,)
-    pagination_class = FilePagination
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'owner__username', 'owner__email', 'category', 'mime_type']
-    ordering_fields = ['name', 'size', 'created_at', 'owner__username']
-    
-    def get_queryset(self):
-        queryset = File.objects.select_related('owner', 'parent').all()
-        
-        # Handle owner filter
-        owner_id = self.request.query_params.get('owner', None)
-        if owner_id:
-            queryset = queryset.filter(owner_id=owner_id)
-                
-        # Handle category filter
-        category = self.request.query_params.get('category', None)
-        if category:
-            queryset = queryset.filter(category__icontains=category)
-            
-        # Handle upload status filter
-        status_filter = self.request.query_params.get('status', None)
-        if status_filter:
-            queryset = queryset.filter(upload_status=status_filter)
-            
-        # Handle sort_by parameter
-        sort_by = self.request.query_params.get('sort_by', '-created_at')
-        if sort_by:
-            queryset = queryset.order_by(sort_by)
-            
-        return queryset
-
-
-class CloudFileDetailView(RetrieveDestroyAPIView):
-    serializer_class = FileSerializer
-    permission_classes = (permissions.IsAdminUser,)
-    queryset = File.objects.select_related('owner', 'parent').all()
 
 
 class UserListView(ListCreateAPIView):
@@ -92,25 +49,25 @@ class UserListView(ListCreateAPIView):
     permission_classes = (permissions.IsAdminUser,)
     pagination_class = UserPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['username', 'email', 'name']
-    ordering_fields = ['username', 'email', 'date_joined']
-    
+    search_fields = ["username", "email", "name"]
+    ordering_fields = ["username", "email", "date_joined"]
+
     def get_queryset(self):
         queryset = User.objects.all()
-        
+
         # Handle status filter
-        status_filter = self.request.query_params.get('status', None)
+        status_filter = self.request.query_params.get("status", None)
         if status_filter:
-            if status_filter == 'online':
+            if status_filter == "online":
                 queryset = queryset.filter(is_online=True)
-            elif status_filter == 'offline':
+            elif status_filter == "offline":
                 queryset = queryset.filter(is_online=False)
-                
+
         # Handle sort_by parameter
-        sort_by = self.request.query_params.get('sort_by', '-date_joined')
+        sort_by = self.request.query_params.get("sort_by", "-date_joined")
         if sort_by:
             queryset = queryset.order_by(sort_by)
-            
+
         return queryset
 
 
@@ -139,8 +96,6 @@ class Stats(APIView):
         messages_prev_week = Message.objects.filter(timestamp__gte=week_start_prev, timestamp__lt=week_start_current).count()
         chats_current_week = Chat.objects.filter(updated_time__gte=week_start_current).count()
         chats_prev_week = Chat.objects.filter(updated_time__gte=week_start_prev, updated_time__lt=week_start_current).count()
-        cloud_files_current_week = File.objects.filter(created_at__gte=week_start_current).count()
-        cloud_files_prev_week = File.objects.filter(created_at__gte=week_start_prev, created_at__lt=week_start_current).count()
 
         weekly = {
             "users": users_current_week,
@@ -149,50 +104,37 @@ class Stats(APIView):
             "messages_trend": calc_trend(messages_current_week, messages_prev_week),
             "chats": chats_current_week,
             "chats_trend": calc_trend(chats_current_week, chats_prev_week),
-            "cloudFiles": cloud_files_current_week,
-            "cloudFiles_trend": calc_trend(cloud_files_current_week, cloud_files_prev_week),
         }
 
         # Message activity for last 7 days (for Chat Activity chart)
         from django.db.models import Count
         from django.db.models.functions import TruncDate
+
         message_activity_qs = (
             Message.objects.filter(timestamp__gte=now - timedelta(days=6))
-            .annotate(day=TruncDate('timestamp'))
-            .values('day')
-            .annotate(count=Count('id'))
-            .order_by('day')
-        )
-        # Cloud file activity for last 7 days (for Cloud Activity chart)
-        cloud_activity_qs = (
-            File.objects.filter(created_at__gte=now - timedelta(days=6))
-            .annotate(day=TruncDate('created_at'))
-            .values('day')
-            .annotate(count=Count('id'))
-            .order_by('day')
+            .annotate(day=TruncDate("timestamp"))
+            .values("day")
+            .annotate(count=Count("id"))
+            .order_by("day")
         )
         import calendar
+
         days_map = {i: calendar.day_abbr[i] for i in range(7)}
         message_activity = []
-        cloud_activity = []
         for i in range(6, -1, -1):
             day_date = (now - timedelta(days=i)).date()
             day_label = days_map[day_date.weekday()]
-            msg_count = next((item['count'] for item in message_activity_qs if item['day'] == day_date), 0)
-            file_count = next((item['count'] for item in cloud_activity_qs if item['day'] == day_date), 0)
-            message_activity.append({'day': day_label, 'count': msg_count})
-            cloud_activity.append({'day': day_label, 'count': file_count})
+            msg_count = next((item["count"] for item in message_activity_qs if item["day"] == day_date), 0)
+            message_activity.append({"day": day_label, "count": msg_count})
 
         stats = {
             "total": {
                 "users": User.objects.count(),
                 "messages": Message.objects.count(),
                 "chats": Chat.objects.count(),
-                "cloudFiles": File.objects.count(),
             },
             "weekly": weekly,
             "chatActivity": message_activity,
-            "cloudActivity": cloud_activity,
         }
         return Response(stats)
 

@@ -21,6 +21,7 @@ class MediaFile(models.Model):
     storage_tier = models.CharField(
         max_length=20, choices=[("hot", "Hot"), ("warm", "Warm"), ("cold", "Cold")], default="hot"
     )
+    timestamp = models.DateTimeField()
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -49,7 +50,7 @@ class CloudFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="files")
-    created_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     parent = models.ForeignKey(Directory, on_delete=models.CASCADE, null=True, blank=True, related_name="files")
     media = models.ForeignKey(MediaFile, on_delete=models.CASCADE, related_name="cloud_files", null=True, blank=True)
