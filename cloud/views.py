@@ -18,10 +18,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from cloud.google_drive import GoogleDriveStorage
+
 from cloud.models import Directory, CloudFile, Tag, FileTag
 from cloud.serializers import BreadcrumbSerializer, DirectorySerializer, FileSerializer, TagSerializer
-from cloud.utils import check_type, extract_date_from_filename, get_directory_path
+from cloud.utils.organizer import check_type, extract_date_from_filename, get_directory_path
+from cloud.utils.storages import GoogleDriveStorage
 
 
 class FileCache:
