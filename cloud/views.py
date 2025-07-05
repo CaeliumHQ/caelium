@@ -280,7 +280,7 @@ class FileDownloadView(APIView):
 
         # Process file in chunks
         decrypted_chunks = []
-        with open(file_obj.local_path, 'rb') as file_content:
+        with open(file_obj.local_path, "rb") as file_content:
             while True:
                 chunk = file_content.read(self.CHUNK_SIZE)
                 if not chunk:
@@ -346,7 +346,7 @@ class FileDownloadView(APIView):
             # Return cached file content
             yield from file_cache.get_file_generator(file_obj.id, self.CHUNK_SIZE)
             return
-            
+
         # If file is still being uploaded to Google Drive, try to serve from local storage
         if file_obj.upload_status == "pending" and file_obj.local_path:
             try:
@@ -356,12 +356,12 @@ class FileDownloadView(APIView):
                 # If local file is not found, fall back to Google Drive if available
                 if not file_obj.drive_file_id:
                     raise Http404("File content not found locally or in Google Drive")
-        
+
         # If file is in Google Drive, serve from there
         if file_obj.drive_file_id:
             yield from self.decrypt_file_stream_from_drive(file_obj)
             return
-            
+
         # If we get here, we couldn't find the file content
         raise Http404("File content not found")
 
@@ -425,11 +425,11 @@ class FileUploadView(APIView):
 
         # Create a file UUID for storage
         file_uuid = str(uuid.uuid4())
-        
+
         # Create directory for this file
         file_dir = self.UPLOADS_DIR / file_uuid
         file_dir.mkdir(exist_ok=True, parents=True)
-        
+
         # Create file path for encrypted content
         encrypted_file_path = file_dir / uploaded_file.name
 
@@ -439,7 +439,7 @@ class FileUploadView(APIView):
 
         try:
             # Process the file in chunks
-            with open(encrypted_file_path, 'wb') as encrypted_file:
+            with open(encrypted_file_path, "wb") as encrypted_file:
                 for chunk in uploaded_file.chunks(self.CHUNK_SIZE):
                     # Update file size
                     file_size += len(chunk)
@@ -512,10 +512,10 @@ class FileUploadView(APIView):
                 try:
                     # Get the UUID folder path (parent directory of the file)
                     uuid_folder = os.path.dirname(temp_file_path)
-                    
+
                     # Delete the file first
                     os.remove(temp_file_path)
-                    
+
                     # Check if the UUID folder is empty
                     if os.path.exists(uuid_folder) and len(os.listdir(uuid_folder)) == 0:
                         # If empty, remove the UUID folder
@@ -592,7 +592,7 @@ class FileUploadView(APIView):
                         category=category,
                         created_at=file_date,
                         upload_status="pending",  # Mark as pending until Google Drive upload completes
-                        local_path=encryption_result["file_path"]  # Store path to local encrypted file
+                        local_path=encryption_result["file_path"],  # Store path to local encrypted file
                     )
 
                     # Save the file object to get an ID
@@ -761,35 +761,32 @@ class ExplorerView(APIView):
 
 class TagViewSet(viewsets.ModelViewSet):
     """ViewSet for managing file tags"""
+
     serializer_class = TagSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
         """Return only tags owned by the current user"""
         return Tag.objects.filter(owner=self.request.user)
-        
+
     def create(self, request, *args, **kwargs):
         """Create a new tag with validation for file ownership"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         # Only accept file_ids as an array
-        file_ids = request.data.get('file_ids')
-        
+        file_ids = request.data.get("file_ids")
+
         # Check if file_ids is provided and is an array
         if not file_ids:
-            return Response(
-                {"error": "file_ids is required and must be an array"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
+            return Response({"error": "file_ids is required and must be an array"}, status=status.HTTP_400_BAD_REQUEST)
+
         # Verify file_ids is actually an array
         if not isinstance(file_ids, list):
             return Response(
-                {"error": "file_ids must be an array, even for a single file"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "file_ids must be an array, even for a single file"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Validate that all files exist and belong to the current user
         files = []
         for fid in file_ids:
@@ -799,18 +796,18 @@ class TagViewSet(viewsets.ModelViewSet):
             except CloudFile.DoesNotExist:
                 return Response(
                     {"error": f"File with id {fid} not found or you don't have permission to tag this file"},
-                    status=status.HTTP_404_NOT_FOUND
+                    status=status.HTTP_404_NOT_FOUND,
                 )
-        
+
         # Create the tag
         tag = serializer.save(owner=request.user)
-        
+
         # Create FileTag associations for all files
         for file in files:
             FileTag.objects.create(file=file, tag=tag)
-        
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
     def perform_update(self, serializer):
         """Update an existing tag"""
         serializer.save()
@@ -819,105 +816,89 @@ class TagViewSet(viewsets.ModelViewSet):
         """Delete a tag"""
         instance.delete()
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def files(self, request, pk=None):
         """Get all files associated with a tag"""
         tag = self.get_object()  # This will use get_queryset, ensuring the user owns the tag
-        
+
         # Get all FileTag entries for this tag
         file_tags = FileTag.objects.filter(tag=tag)
         files = [ft.file for ft in file_tags]
-        
+
         # Serialize the files
-        serializer = FileSerializer(files, many=True, context={'request': request})
+        serializer = FileSerializer(files, many=True, context={"request": request})
         return Response(serializer.data)
-    
-    @action(detail=True, methods=['post'])
+
+    @action(detail=True, methods=["post"])
     def tag_files(self, request, pk=None):
         """Add files to an existing tag"""
         tag = self.get_object()
-        
+
         # Get file IDs from request
-        file_ids = request.data.get('file_ids')
+        file_ids = request.data.get("file_ids")
         if not file_ids:
-            return Response(
-                {"error": "file_ids is required and must be an array"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
+            return Response({"error": "file_ids is required and must be an array"}, status=status.HTTP_400_BAD_REQUEST)
+
         # Verify file_ids is actually an array
         if not isinstance(file_ids, list):
             return Response(
-                {"error": "file_ids must be an array, even for a single file"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "file_ids must be an array, even for a single file"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Validate files exist and belong to user
         added_files = []
         errors = []
-        
+
         for file_id in file_ids:
             try:
                 file = CloudFile.objects.get(id=file_id, owner=request.user)
-                
+
                 # Check if this file is already tagged
                 file_tag, created = FileTag.objects.get_or_create(file=file, tag=tag)
-                
+
                 if created:
-                    added_files.append(FileSerializer(file, context={'request': request}).data)
+                    added_files.append(FileSerializer(file, context={"request": request}).data)
                 else:
                     errors.append(f"File {file_id} is already tagged with this tag")
-                    
+
             except CloudFile.DoesNotExist:
                 errors.append(f"File {file_id} not found or you don't have permission to tag it")
-        
-        return Response({
-            "tag": TagSerializer(tag).data,
-            "added_files": added_files,
-            "errors": errors
-        })
-    
-    @action(detail=True, methods=['post'])
+
+        return Response({"tag": TagSerializer(tag).data, "added_files": added_files, "errors": errors})
+
+    @action(detail=True, methods=["post"])
     def untag_files(self, request, pk=None):
         """Remove files from a tag"""
         tag = self.get_object()
-        
+
         # Get file IDs from request
-        file_ids = request.data.get('file_ids')
+        file_ids = request.data.get("file_ids")
         if not file_ids:
-            return Response(
-                {"error": "file_ids is required and must be an array"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
+            return Response({"error": "file_ids is required and must be an array"}, status=status.HTTP_400_BAD_REQUEST)
+
         # Verify file_ids is actually an array
         if not isinstance(file_ids, list):
             return Response(
-                {"error": "file_ids must be an array, even for a single file"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "file_ids must be an array, even for a single file"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Process file removals
         removed_files = []
         errors = []
-        
+
         for file_id in file_ids:
             try:
                 file = CloudFile.objects.get(id=file_id, owner=request.user)
-                
+
                 try:
                     # Find and delete the FileTag association
                     file_tag = FileTag.objects.get(file=file, tag=tag)
                     file_tag.delete()
-                    removed_files.append(FileSerializer(file, context={'request': request}).data)
+                    removed_files.append(FileSerializer(file, context={"request": request}).data)
                 except FileTag.DoesNotExist:
                     errors.append(f"File {file_id} was not tagged with this tag")
-                    
+
             except CloudFile.DoesNotExist:
                 errors.append(f"File {file_id} not found or you don't have permission to modify its tags")
-        
-        return Response({
-            "tag": TagSerializer(tag).data,
-            "removed_files": removed_files,
-            "errors": errors
-        })
+
+        return Response({"tag": TagSerializer(tag).data, "removed_files": removed_files, "errors": errors})
