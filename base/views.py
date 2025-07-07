@@ -1,8 +1,10 @@
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from base.models import Comment, Like, Task
-from base.serializers import CommentSerializer, LikeSerializer, TaskSerializer
+from base.models import Comment, Like, Post, Task
+from base.serializers import CommentSerializer, LikeSerializer, PostCreateSerializer, PostSerializer, TaskSerializer
 
 
 class TaskViewSet(ModelViewSet):
@@ -28,3 +30,25 @@ class CommentViewSet(ModelViewSet):
 
     def get_queryset(self):
         return Comment.objects.filter(owner=self.request.user)
+
+
+class PostViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Post.objects.all()
+
+    def get_serializer_class(self):
+        if self.action  == 'create':
+            return PostCreateSerializer
+        return PostSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Custom create method to handle post creation with different fields.
+        Accepts: caption, media, tagged_users, allow_comments
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(owner=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

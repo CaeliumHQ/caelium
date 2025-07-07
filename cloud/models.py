@@ -8,7 +8,9 @@ from accounts.models import User
 class MediaFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     filename = models.CharField(max_length=255)
-    location = models.CharField(max_length=255, blank=True, null=True)
+    location = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Location of the file in the storage system"
+    )
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
     encryption_key = models.TextField(blank=True, null=True)
     encryption_iv = models.TextField(blank=True, null=True)
