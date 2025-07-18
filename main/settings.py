@@ -21,9 +21,6 @@ DEBUG = bool(os.environ["env"] == "dev")
 AUTH_USER_MODEL = "accounts.User"
 
 ALLOWED_HOSTS = ["api.caelium.co", "192.168.43.157", "127.0.0.1", "localhost"]
-# Add custom allowed host from environment variable if it exists
-if "CUSTOM_ALLOWED_HOST" in os.environ and os.environ["CUSTOM_ALLOWED_HOST"]:
-    ALLOWED_HOSTS.append(os.environ["CUSTOM_ALLOWED_HOST"])
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -34,6 +31,12 @@ CSRF_TRUSTED_ORIGINS = [
     "http://192.168.43.157:3000",
     "http://localhost:3000",
 ]
+
+# Add custom allowed host from environment variable if it exists
+
+if "CUSTOM_ALLOWED_HOST" in os.environ and os.environ["CUSTOM_ALLOWED_HOST"]:
+    ALLOWED_HOSTS.append(os.environ["CUSTOM_ALLOWED_HOST"])
+
 if "CUSTOM_ALLOWED_HOST" in os.environ and os.environ["CUSTOM_ALLOWED_HOST"]:
     CSRF_TRUSTED_ORIGINS.extend(
         [
@@ -42,9 +45,6 @@ if "CUSTOM_ALLOWED_HOST" in os.environ and os.environ["CUSTOM_ALLOWED_HOST"]:
         ]
     )
 
-# File upload settings
-DATA_UPLOAD_MAX_NUMBER_FILES = 200
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 * 1024  # 10GB
 
 # Application definition
 
@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "chats.apps.ChatsConfig",
     "dash.apps.DashConfig",
     "cloud.apps.CloudConfig",
+    "api.apps.ApiConfig",
     "finance.apps.FinanceConfig",
 ]
 
