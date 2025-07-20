@@ -42,6 +42,8 @@ if "CUSTOM_ALLOWED_HOST" in os.environ and os.environ["CUSTOM_ALLOWED_HOST"]:
         [
             f"http://{os.environ['CUSTOM_ALLOWED_HOST']}:8000",
             f"http://{os.environ['CUSTOM_ALLOWED_HOST']}:3000",
+            f"http://{os.environ['CUSTOM_ALLOWED_HOST']}",
+            f"https://{os.environ['CUSTOM_ALLOWED_HOST']}",
         ]
     )
 
