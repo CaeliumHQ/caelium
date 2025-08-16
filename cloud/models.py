@@ -6,11 +6,9 @@ from accounts.models import User
 
 
 class MediaFile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    appwrite_id = models.CharField(max_length=255, unique=True, help_text="Unique identifier for the media file in Appwrite")
+    g_drive_id = models.CharField(max_length=255, unique=True, help_text="Google Drive ID if applicable")
     filename = models.CharField(max_length=255)
-    location = models.CharField(
-        max_length=255, blank=True, null=True, help_text="Location of the file in the storage system"
-    )
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
     encryption_key = models.TextField(blank=True, null=True)
     encryption_iv = models.TextField(blank=True, null=True)
@@ -20,9 +18,7 @@ class MediaFile(models.Model):
         max_length=20,
         choices=[("image", "Image"), ("video", "Video"), ("audio", "Audio"), ("document", "Document"), ("other", "Other")],
     )
-    storage_tier = models.CharField(
-        max_length=20, choices=[("hot", "Hot"), ("warm", "Warm"), ("cold", "Cold")], default="hot"
-    )
+    storage_tier = models.CharField(max_length=20, choices=[("hot", "Hot"), ("cold", "Cold")], default="hot")
     timestamp = models.DateTimeField()
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
