@@ -1,4 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -75,7 +77,6 @@ class User(AbstractUser):
         """Get the number of followers for this user"""
         # Use cache if available, fallback to database count
         cache_key = f"user_{self.id}_followers_count"
-        from django.core.cache import cache
 
         count = cache.get(cache_key)
         if count is None:
@@ -87,7 +88,6 @@ class User(AbstractUser):
         """Get the number of users this user is following"""
         # Use cache if available, fallback to database count
         cache_key = f"user_{self.id}_following_count"
-        from django.core.cache import cache
 
         count = cache.get(cache_key)
         if count is None:
@@ -106,7 +106,6 @@ class User(AbstractUser):
 
     def invalidate_follow_cache(self):
         """Invalidate cached follower/following counts"""
-        from django.core.cache import cache
 
         cache.delete(f"user_{self.id}_followers_count")
         cache.delete(f"user_{self.id}_following_count")
@@ -165,7 +164,6 @@ class Follow(models.Model):
 
     def clean(self):
         """Prevent users from following themselves"""
-        from django.core.exceptions import ValidationError
 
         if self.follower == self.followed:
             raise ValidationError("Users cannot follow themselves")
